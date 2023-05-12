@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Geoglyph Simple geojson editor</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet.pm@latest/dist/leaflet.pm.css"/>
+        <link rel="stylesheet" href="libs/locationfilter.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+        <!-- Google Maps API -->
+        <script src="https://maps.google.com/maps/api/js?v=3"></script>
+
+        <!-- jQuery API -->
+        <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+        <script src="https://unpkg.com/leaflet.pm@latest/dist/leaflet.pm.min.js"></script>
+        <script src="libs/locationfilter.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+        <script src="libs/Google.js"></script>
+
+        <!-- Materialize -->
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+        <style>
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            html, body {
+                height: 100%;
+                font: 10pt "Helvetica Neue", Arial, Helvetica, sans-serif;
+            }
+            .page-footer {	padding-top: 10px; }
+            .page-footer .container { width: 85%; }
+            nav, .page-footer { background-color:  #1b1c1d; }
+            .ui-dialog-titlebar { background-color:  #26a69a; }
+            .sidenav { z-index: 9999; }
+            .ui-dialog { z-index: 9999; }
+            nav, .nav-wrapper, li { height: 42px; line-height: 42px; }
+            nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i { height: 42px; line-height: 42px; }
+            .dropdown-content { min-width: 300px !important; }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <div class="nav-wrapper">
+                <ul class="left">
+                    <li><img src="img/Geoglyph-logo-s-l.png" style="height:38px;"></li>
+                    <li><input type="file" id="geojsonfile" onchange="fileMultiSelect(this);" accept="application/geo+json" multiple>
+                    <li>
+                        <div class="preloader-wrapper small" id="gh_loader" style="width:32px;height:32px;">
+                            <div class="spinner-layer spinner-green-only">
+                                <div class="circle-clipper left">
+                                    <div class="circle"></div>
+                                </div><div class="gap-patch">
+                                    <div class="circle"></div>
+                                </div><div class="circle-clipper right">
+                                    <div class="circle"></div>
+                                </div>
+                            </div>
+                        </div></li>
+                    <li><button id="creategeojson">geojson出力</button>
+                    <li><a id="download">download</a>
+                </ul>
+
+                <ul class="right">
+                    <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li>
+                    <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
+                    <li><a class="waves-effect waves-light modal-trigger" href="#gh_aboutmodal"><i class="material-icons">help_outline</i></a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!--
+        
+          <input type="file" id="geojsonfile" onchange="fileMultiSelect( this );" accept="application/geo+json" multiple>
+        &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  
+          <button id="creategeojson">geojson出力</button>
+          <a id="download">download</a>
+          <BR>
+        -->
+
+        <div id="main_map" style="width:100%;height:90%;font: 10pt "Helvetica Neue", Arial, Helvetica, sans-serif;"></div>
+        <div id="ret"></div>
+        <textarea name="geodata" id="geodata" rows="5" cols="10" style="max-width:45%;float:left;"></textarea>
+        <textarea name="geoproperty" id="geoproperty" rows="5" cols="10" style="max-width:45%;float:right;"></textarea>
+
+        <!-- About Modal Structure -->
+        <div id="gh_aboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
+            <div class="modal-content">
+                <img src="img/Geoglyph-logo-s-l.png">
+                <h4>Geoglyph Rail 3D</h4>
+                <div id="gh_aboutcontent"></div>
+            </div>
+            <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+                <i class="material-icons">copyright</i> 2021 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat">___OK_OK___</a>
+            </div>
+        </div>        
+        <!-- About Modal Structure -->        
+
+        <script src="js/ghGeoJsonEdit.js"></script>
+    </body>
+</html>

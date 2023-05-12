@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html data-attr-t lang-t="attribute.lang">
+  <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-64986417-1"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+
+            gtag('config', 'UA-64986417-1');
+        </script>
+        <meta charset="utf-8" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+    <meta name="description" data-attr-t content-t="attribute.desc" lang-t="attribute.lang">
+    <meta name="keywords" data-attr-t content-t="attribute.keywords" lang-t="attribute.lang"/>
+    <title>Geoglyph Rail</title>
+
+    <!-- jQuery API -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <!--  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> -->
+    <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="../../miniwindow/jquery-ui.min.css">
+    <script src="../../miniwindow/jquery-ui.min.js"></script>
+
+    <!-- Materialize -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <!-- Cesium -->
+    <script src="../../cesium/Cesium.js"></script>
+    <link href="../../cesium/Widgets/widgets.css" rel="stylesheet">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+<!--   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css"> -->
+    
+    <script src="../../leaflet/leaflet.geometryutil.js"></script>
+<!--    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script> -->
+    <script src="../../leaflet/Polyline.encoded.js" charset="utf-8"></script>
+    <link rel="stylesheet" type="text/css" href="../../leaflet/leaflet.control.select.css">
+    <script src="../../leaflet/leaflet.control.select.fix.js"></script>
+    
+<!--    <link rel="stylesheet" type="text/css" href="../../leaflet/leaflet-distance-marker.css">
+    <script src="../../leaflet/leaflet-distance-marker.js"></script> -->
+
+    <!-- Speedometer -->
+    <link href="../css/ghspeedometer.css" rel="stylesheet" type="text/css" />
+    <script src="../js/ghSpeedoMeter.js"></script>    
+	
+    <style type="text/css">
+      /*
+      html, body, #cesiumContainer {
+         width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+      }*/
+      #ghLeafletContainer { height: 350px; width:390px; margin-top: -5px; margin-left:-15px; overflow:hidden; }
+      nav, .page-footer { background-color:  #1b1c1d; }
+      .ui-dialog-titlebar { background-color:  #26a69a; }
+      .ui-dialog { z-index: 9999; }
+      nav, .nav-wrapper, li { height: 42px; line-height: 42px; }
+      nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i { height: 42px; line-height: 42px; }
+      table.viewpointtable tr, td {
+	  border-bottom: 0;
+	  text-align: center;
+	  padding: 0;
+      }
+    </style>
+  </head>
+
+  <body style="background:#020202;">
+    <nav>
+      <div class="nav-wrapper">
+        <ul class="left">
+          <li><img src="../images/Geoglyph-logo-s-l.png" style="height:38px;"></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+          <li>GeoGlyph Rail
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li> <a id="ghsearchbtn" title="Search" class="modal-trigger" href="#ghstartmodal"><i class="fa fa-search"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li> <a id="gh3dpropertybtn" title="3D property"><i class="fa fa-cogs"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li> <a id="ghmodelpropertybtn" title="Model property"><i class="fa fa-train"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li> <a id="ghcamerapropertybtn" title="Camera property"><i class="fa fa-camera"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li> <a id="ghweatherpropertybtn" title="Weather property"><i class="fa fa-cloud"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li> <a id="ghsoundeffectpropertybtn" title="Sound Effect property"><i class="fa fa-music"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li><a class="waves-effect waves-light modal-trigger" title="timetable" href="#ghtimetablemodal"><i class="small material-icons left">timer</i></a></li>
+          <li>
+            <div class="preloader-wrapper small" id="ghloader" style="width:16px;height:16px;">
+              <div class="spinner-layer spinner-green-only">
+                <div class="circle-clipper left">
+                  <div class="circle"></div>
+                </div><div class="gap-patch">
+                  <div class="circle"></div>
+                </div><div class="circle-clipper right">
+                  <div class="circle"></div>
+                </div>
+              </div>
+          </div></li>
+          <li><span id="ghtilequeue" style="color:#b0bec5"></span></li>
+        </ul>
+
+        <ul class="right">
+	  <!--
+          <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li> -->
+          <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
+          <li><a class="waves-effect waves-light modal-trigger" href="#ghaboutmodal"><i class="material-icons">help_outline</i></a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div id="ghCesiumContainer" style="width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;"></div>
+    <div id="ghspeedometerposition" style="position:relative;top:-160px;right:6px;float:right;"/>
+        <div id="ghspeedometer"/></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div style="left: 60px;width: 660px;height:48px;position:absolute;top:48px;z-index:1000;background-color: rgba(211,211,211,0.5);border-radius: 8px;">
+      <table style="width: 660px;height:48px;margin-left:2px;">
+	<tr>
+	  <td style="width:620px;padding:0px 0px;overflow: hidden;white-space: nowrap;max-width: 620px;">
+	    <span id="gh_datatitlemarquee" behavior="scroll" scrollamount="3" direction="left" width="620" height="38">
+	      <span id="gh_datatitle" style="font-size:20px;">A</span>
+	  </span></td>
+	</tr>	    
+      </table>
+    </div>
+    <div id="ghstatusbarbottom" style="width: 480px;height:48px;position:absolute;top:48px;left: 160px;z-index:1000;background-color: rgba(211,211,211,0.5);border-radius: 8px;">
+      <table style="width: 480px;height:44px;margin:auto;overflow:hidden;">
+	<tr>
+          <!-- <td style="width:24px;padding:0px 0px;"><i class="material-icons center" id="multipliericon">network_check</i> -->
+	  <td id="ghcesiummultiplier-field" style="width:180px;padding: 3px 3px;"><input type="range" name="cesiummultiplier" id="ghcesiummultiplier" min="-10" max="10" step="1" value="1"/>
+
+          <td style="width:24px;padding:3px 3px;">
+	    <a href="javascript:ghOnclickOpenTimePicker();">
+	      <i class="material-icons center" id="clockicon">access_time</i></a>
+	    <input id="ghtimepicker_input" type="hidden" class="timepicker" ></td>
+          <td style="width:80px;padding:3px 3px;"><span id="timedescription"  style="font-size:18px;">00:00:00</span></td>
+
+          <td style="width:120px;padding: 3px 3px;">
+	    <a id="ghplaybtn" class="waves-effect waves-light btn tooltipped" style="width:120px;" onClick="ghOnClickPlayPauseButton();">
+	      <i id="ghplaypauseicon" class="material-icons">play_arrow</i><span id="ghplaybtntext">play</span>
+	    </a>
+            <!-- <td style="width:24px;"><i class="fa fa-camera"></i> -->
+	  <td style="width:24px;padding: 3px 3px;cursor:pointer;">
+	    <a id="ghleafletbtn" title="2D map"><i class="small material-icons">map</i></a>
+	  <td style="width:24px;padding: 3px 3px;cursor:pointer;">
+	    <a id="ghviewpointbtn" title="Viewpoint"><i class="small material-icons">videocam</i></a>
+	</tr>	    
+      </table>
+    </div>
+
+    <!-- Viewpoint Dialog -- https://www.osaka-kyoiku.ac.jp/~joho/html5_ref/border_attr.php -->
+    <div id="ghViewpointDialog" title="Viewpoint Control">
+      <table class="viewpointtable" style="border-collapse: collapse; border: 0; text-align: center; padding: 0;">
+	 <colgroup style="border: 0;width:33px;"><col><col><col>
+	 <colgroup style="border: 0;width:33px;"><col><col><col>
+	 <colgroup style="border: 0;width:33px;"><col><col><col>
+	 <tbody style="border: 0;height:33px;">
+	   <tr> <td><td><td><td><td><td><td><td><td>
+           <tr> <td><td><label><input class="with-gap" name="viewpoint" value="9" type="radio"/><span>.</span></label><td><td><td><label><input class="with-gap" name="viewpoint" value="7" type="radio"/><span>.</span></label><td><td><td><label><input class="with-gap" name="viewpoint" value="8" type="radio"/><span>.</span></label><td>
+	   <tr> <td><td><td><td><td>↓<td><td><td><td>
+         <tbody style="border: 0;height:48px;">
+	   <tr> <td><td><td><td><td><label><input class="with-gap" name="viewpoint" value="3" type="radio"/><span>.</span></label><td><td><td><td>
+	   <tr> <td><td><label><input class="with-gap" name="viewpoint" value="14" type="radio"/><span>.</span></label><td>→<td><label><input class="with-gap" name="viewpoint" value="5" type="radio"/><span>.</span></label><td style="height:34px;border:2px solid;"><i class="small material-icons">train</i><td><label><input class="with-gap" name="viewpoint" value="4" type="radio"/><span>.</span></label><td>←<td><label><input class="with-gap" name="viewpoint" value="10" type="radio"/><span>.</span></label><td>
+	   <tr> <td><td><td><td><td><label><input class="with-gap" name="viewpoint" value="6" type="radio"/><span>.</span></label><td><td><td><td>
+	 <tbody style="border: 0;height:33px;">
+	   <tr> <td><td><td><td><td>↑<td><td><td><td>
+	   <tr> <td><td><label><input class="with-gap" name="viewpoint" value="13" type="radio"/><span>.</span></label><td><td><td><label><input class="with-gap" name="viewpoint" value="11" type="radio"/><span>.</span></label><td><td><td><label><input class="with-gap" name="viewpoint" value="12" type="radio"/><span>.</span></label><td>
+	   <tr> <td><td><td><td><td><td><td><td><td>
+      </table><BR>
+      <HR>
+      <table style="border-collapse: collapse; border: 0; text-align: center; padding: 0;">
+	<tr> <td><label><input class="with-gap" name="viewpoint" value="0" type="radio" checked/><span><img src="../images/SilverBtnUpN.png"></span></label><td><label><input class="with-gap" name="viewpoint" value="1" type="radio"/><span><img src="../images/SilverBtnUpT.png"></span></label><td><label><input class="with-gap" name="viewpoint" value="2" type="radio"/><span><img src="../images/SilverBtnUpA.png"></span></label>
+      </table>
+    </div>
+    <!-- Viewpoint Dialog -->
+
+    <!-- Leaflet Map Dialog -->
+    <div id="ghLeafletDialog" title="Control Map">
+      <div class="leftpane" id="ghLeafletContainer"></div>
+    </div>
+    <!-- Leaflet Map Dialog -->
+
+    <!--3D Property Dialog -->
+    <div id="gh3DPropertyDialog" title="3D Property Settings">
+      <h5 style="margin-left:24px" data-t>paragram3d.setting</h5>
+      <p data-t>paragram3d.quality</p>
+      <p class="range-field">
+        <input type="range" name="cesiumquality" id="qualityslider" min="10" max="100" step="1" value="70"/>
+      </p>                    
+      <p data-t>paragram3d.tilecache</p>
+      <p class="range-field">
+        <input type="range" name="cesiumtilecachesize" id="tilecachesizeslider" min="100" max="2000" step="100" value="100" />
+      </p>
+      <p>
+        <label>
+          <input type="checkbox" class="filled-in" id="frameratecheckbox"/>
+          <span data-t>paragram3d.framerate</span>
+        </label><BR>
+        <label>
+          <input type="checkbox" class="filled-in" id="tilequeuecheckbox"/>
+	  <span data-t>paragram3d.tilequeue</span>
+        </label><BR>
+        <label>
+          <input type="checkbox" class="filled-in" id="speedmetercheckbox"/>
+          <span data-t>paragram3d.speedometer</span>
+        </label><BR>
+        <label>
+          <input type="checkbox" class="filled-in" id="lightingcheckbox"/>
+          <span data-t>paragram3d.enablesun</span>
+        </label><BR>
+        <label>
+          <input type="checkbox" class="filled-in" id="watercheckbox" />
+          <span data-t>paragram3d.enablewater</span>
+        </label><BR>
+        <label>
+          <input type="checkbox" class="filled-in" id="tunnelcheckbox" />
+          <span data-t>paragram3d.enabletunnel</span>
+        </label><BR>
+        <label>
+          <input type="checkbox" class="filled-in" id="tile3dcheckbox" />
+          <span data-t>paragram3d.enable3dtile</span>
+        </label><BR>
+	<!--	
+        <label>
+          <input type="checkbox" class="filled-in" id="gh_fogcheckbox"/>
+          <span data-t>paragram3d.enablefog</span>
+        </label><BR>
+        <label>
+          <input name="3dtile_type" value="osmbuildings" type="radio" checked />
+          <span data-t>paragram3d.3dtileosmbuilding</span>
+        </label><BR>
+        <label>
+          <input name="3dtile_type" value="polygon" type="radio"/>
+          <span data-t>paragram3d.3dtilepolygon</span>
+        </label><BR>
+        <label>
+          <input name="3dtile_type" value="withtexture" type="radio"/>
+          <span data-t>paragram3d.3dtiletexture</span>
+        </label>
+	-->
+      </p>
+    </div>
+    <!-- 3D Property Dialog -->
+
+    <!-- Model Property Dialog -->
+    <div id="ghModelPropertyDialog" title="Model Property Settings">
+      <h5 style="margin-left:24px" data-t>paragrammodel.setting</h5>
+      <p>
+        <label>
+          <input type="checkbox" class="filled-in" id="modellabelcheckbox"  checked />
+          <span data-t>paragrammodel.showtrainlabel</span>
+        </label>
+      </p>
+      <p data-t>paragrammodel.scale</p>
+      <p class="range-field">
+        <input type="range" name="modellabelscale" id="modellabelscaleslider" min="16" max="64"  step="4" value="16"/>
+      </p>
+      <p data-t>paragrammodel.yoffset</p>
+      <p class="range-field">
+        <input type="range" name="modellabelyoffset" id="modellabelyoffsetslider" min="5" max="300"  step="5" value="10"/>
+      </p>
+      <p>
+	<label>
+	  <span data-t>paragrammodel.color</span>
+	  <input id="modellabelcolor" name="modellabelcolor" value="#ffff00" type="color"/>
+	</label>
+      </p>
+      <h5 style="margin-left:24px" data-t>paragrammodel.labelsetting</h5>
+      <p>
+        <label>
+          <input type="checkbox" class="filled-in" id="stationlabelcheckbox"  checked />
+          <span data-t>paragrammodel.showstationlabel</span>
+        </label>
+      </p>
+      <p data-t>paragrammodel.scale</p>
+      <p class="range-field">
+        <input type="range" name="stationlabelscale" id="stationlabelscaleslider" min="16" max="64"  step="4" value="16"/>
+      </p>
+      <p data-t>paragrammodel.yoffset</p>
+      <p class="range-field">
+        <input type="range" name="stationlabelyoffset" id="stationlabelyoffsetslider" min="5" max="300"  step="5" value="10"/>
+      </p>
+      <p>
+	<label>
+	  <span data-t>paragrammodel.color</span>
+	  <input id="stationlabelcolor" name="stationlabelcolor" value="#ffff00" type="color"/>
+	</label>
+      </p>
+      <h5 style="margin-left:24px" data-t>paragrammodel.tracksetting</h5>
+      <p data-t>paragrammodel.trackwidth</p>
+      <p class="range-field">
+        <input type="range" name="trackwidth" id="trackwidthslider" min="1" max="8"  step="1" value="3"/>
+      </p>
+      <p>
+	<label>
+	  <span data-t>paragrammodel.color</span>
+	  <input id="gh_trackcolor" name="trackcolor" value="#323232" type="color"/>
+	</label>
+      </p>
+    </div>
+    <!-- Model Property Dialog -->
+
+    <!-- Camera Property Dialog -->
+    <div id="ghCameraPropertyDialog" title="Camera Property Settings">
+      <h5 style="margin-left:24px" data-t>paragramcamera.setting</h5>
+      <p>
+        <label>
+          <input type="checkbox" class="filled-in" id="autocameracheckbox"/>
+          <span data-t>paragramcamera.autocamera</span>
+	</label><BR><BR>
+        <p class="range-field">
+	  <input type="range" name="autocameraminutes" id="autocameraminutes" min="1" max="10"  step="1" value="2"/>
+	</p>
+	<!--
+	<label>
+	  <input class="with-gap" name="autocamerapattern" value="2" type="radio"/>
+	  <span data-t>paragramcamera.bothtype</span>
+        </label><BR>                      
+	<label>
+	  <input class="with-gap" name="autocamerapattern" value="1" type="radio"/>
+	  <span data-t>paragramcamera.tracktype</span>
+	</label><BR>
+        <label>
+	  <input class="with-gap" name="autocamerapattern" value="0" type="radio"/>
+	  <span data-t>paragramcamera.ridetype</span>
+	</label><BR>                       -->
+	
+      </p>
+    </div>
+    <!-- Camera Property Dialog -->
+
+    <!-- Weather Dialog -->
+    <div id="ghWeatherPropertyDialog" title="Weather Property Settings">
+      <h5 style="margin-left:24px" data-t>paragram3d.weather</h5>
+      <label>
+        <input class="with-gap" name="cesiumweather" value="sunny" type="radio" checked/>
+        <span data-t>paragram3d.sunny</span>
+      </label><BR>
+      <label>
+        <input class="with-gap" name="cesiumweather" value="cloud" type="radio" />
+        <span data-t>paragram3d.cloud</span>
+      </label><BR>
+      <label>
+        <input class="with-gap" name="cesiumweather" value="rain" type="radio"/>
+        <span data-t>paragram3d.rainy</span>
+      </label><BR>
+      <p data-t>paragram3d.raindensity</p>
+      <p class="range-field">
+        <input type="range" name="raindensity" id="gh_rainslider" min="5" max="100"  step="1" value="5"/>
+      </p>
+      <label>
+        <!-- <input type="checkbox" class="filled-in" id="gh_rainsoundcheckbox"/> -->
+        <span data-t>paragram3d.rainsound</span>
+	<audio id="audiorain" controls loop><source src="../RSC/audio/RainSoundEffectShort2minutes.mp3" type="audio/mp3">BGM not available</audio>
+      </label>
+    </div>
+    <!-- Weather Dialog -->
+    
+
+    <!-- Sound Effect Dialog -->
+    <div id="ghSoundEffectPropertyDialog" title="Sound Effect Property Settings">
+      <ul>
+	<li><audio id="audiotype1" controls loop ><source src="../RSC/audio/sound_of_train_30min.mp3" type="audio/mp3">BGM not available</audio>
+	<li><BR><BR>
+	<li><audio id="audiotype2" controls loop ><source src="../RSC/audio/sound_of_train_beograd.mp3" type="audio/mp3">BGM not available</audio>
+	<li><BR><BR>
+	<li><audio id="audiotype3" controls loop ><source src="../RSC/audio/sound_of_train_highspeed.mp3" type="audio/mp3">BGM not available</audio>
+      </ul>
+    </div>
+    <!-- Sound Effect Dialog -->
+    
+    <!-- Start Modal Structure -->
+    <div id="ghstartmodal" class="modal" style="height:320px;width:320px;">
+      <div class="modal-content">
+	<a href="rail2map.html" class="ui medium rounded image">
+          <img src="../images/linemap.jpg" style="width:280px;height:144px;">
+	  <i class="material-icons">launch</i><span data-t="modal.selectmap"></span>
+      </div>
+      <!--
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey" data-t="modal.no"></a>
+        <a href="javascript:ghOnclickStartModalInputCheck();" class="modal-close waves-effect waves-green btn"><span data-t="modal.ok"></span><i class="material-icons right">send</i></a>
+      </div>
+      -->
+    </div>            
+    <!-- Start Modal Structure -->
+
+    <!-- Time Modal Structure -->
+    <div id="ghtimetablemodal" class="modal" style="height:400px;width:640px;">
+      <div class="modal-content">
+        <h4 data-t="modal.timetableline"></h4>
+	<div id="ghtimetablemodal_list"></div>
+      </div>
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey" data-t="modal.no"></a>&nbsp;&nbsp;
+        <a target="_blank" rel="noopener" href="rail4t.html" class="modal-close waves-effect waves-green btn"><i class="material-icons right">open_in_new</i><span data-t="modal.ok"></span></a>
+      </div>
+    </div>            
+    <!-- Time Modal Structure -->
+
+    <!-- About Modal Structure -->
+    <div id="ghaboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
+      <div class="modal-content">
+        <h4><a href="https://earth.geoglyph.info/">Geoglyph Rail</a></h4>
+	<iframe width="420" height="236" src="https://www.youtube.com/embed/1beg4cgcGb8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+	<div id="gh_datacontent"></div>
+	<BR>
+	<div id="gh_aboutcontent"></div>
+      </div>
+      <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+        <i class="material-icons">copyright</i>2023 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat">OK</a>
+      </div>
+    </div>        
+    <!-- About Modal Structure -->        
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-3454291972460940"
+         data-ad-slot="8905086772"
+         data-ad-format="auto"></ins>
+    <script>
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+    
+    <!--
+    <script src="ghLang.js"></script>
+    <script src="../js/ghRailWeather.js"></script>
+    <script src="../js/ghRailBroadcast.js"></script>
+    <script src="../js/ghRail3Dtile.js"></script>
+    -->
+    <script src="ghLang.js"></script>
+    <script src="../js/jquery.marquee.js"></script>
+    <script src="../js/turfRail.min.js"></script>
+    <script src="../js/ghRailBroadcast.js"></script>
+    <script src="../js/ghRailWeather.js"></script>
+    <script src="../js/ghRail.js"></script>
+  </body>
+</html>

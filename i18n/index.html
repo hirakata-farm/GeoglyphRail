@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html data-attr-t lang-t="attribute.lang">
+    <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-64986417-1"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+
+            gtag('config', 'UA-64986417-1');
+        </script>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+        <meta name="description" data-attr-t content-t="attribute.desc" lang-t="attribute.lang">
+        <meta name="keywords" data-attr-t content-t="attribute.keywords" lang-t="attribute.lang"/>
+        <title>Geoglyph Rail WebGL 3D</title>
+
+        <!-- CSS  -->
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"> 
+        <link href="../../indexres/css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/> 
+
+        <!--  Scripts-->
+        <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+        <script src="../../indexres/js/init.js"></script>
+
+        <!-- Twitter Cards integration: https://dev.twitter.com/cards/  -->
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:site" content="@maptrain">
+        <meta name="twitter:title" content="Geoglyph WebGL 3D">
+        <meta name="twitter:description" data-attr-t content-t="attribute.desc">
+        <meta name="twitter:image" content="https://earth.geoglyph.info/indexres/geoglyphogp.png">
+
+        <!-- Place your favicon.ico and apple-touch-icon.png in the template root directory -->
+        <link href="favicon.ico" rel="shortcut icon">
+
+    </head>
+    <body>
+        <nav class="light-blue lighten-1" role="navigation">
+            <div class="nav-wrapper container"><a id="logo-container" href="../../index.html" class="brand-logo"><img src="../../indexres/images/geoglyph-logo-36w.png"></a>
+                <ul class="right hide-on-med-and-down">
+                    <li><a href="#logo-container" data-t="index.top"></a></li>
+                    <li><a href="#menufeatures" data-t="index.features"></a></li>
+                    <li><a href="#menuhowtoplay"  data-t="index.howtoplay"></a></li>
+                    <li><a href="#menucontact" data-t="index.contactus"></a></li>
+                </ul>
+
+                <ul id="nav-mobile" class="sidenav">
+                    <li><a href="#logo-container" data-t="index.top"></a></li>
+                    <li><a href="#menufeatures" data-t="index.features"></a></li>
+                    <li><a href="#menuhowtoplay"  data-t="index.howtoplay"></a></li>
+                    <li><a href="#menucontact" data-t="index.contactus"></a></li>
+                </ul>
+                <a href="#" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+            </div>
+        </nav>
+
+        <div class="section no-pad-bot" id="index-banner">
+            <div class="container" style="background-image: url('../../indexres/images/world-map-tr.png');">
+                <br><br>
+                <h1 class="header center orange-text">Geoglyph Rail</h1>
+                <h6 class="header center orange-text">  WebGL 3D</h6>
+                <div class="row center">
+                    <h5 class="header col s12 light" style="color:#29b6f6;font-weight：bold;" data-t="index.maintitle"></h5>
+                </div>
+                <br><br>
+            </div>
+        </div>
+
+
+        <div class="container">
+            <div class="section">
+
+                <div class="row">
+                    <div class="col s12 m12">
+                        <h2 id="menufeatures" class="center light-blue-text" data-t="index.features"></h2>
+                    </div>
+                </div>
+
+                <!--   Icon Section   -->
+                <div class="row">
+                    <div class="col s12 m4">
+                        <div class="icon-block">
+                            <h2 class="center light-blue-text"><i class="material-icons">train</i></h2>
+                            <h5 class="center" data-t="index.train"></h5>
+                        </div>
+                        <BR>
+			<ul>
+			<li data-t="index.features_a"></li>
+                        <li data-t="index.features_b"></li>
+                        <li data-t="index.features_c"></li>
+                        <li data-t="index.features_d"></li>
+                        <li data-t="index.features_e"></li>
+                        <li data-t="index.features_f"></li>
+			<li> <A href="https://www.youtube.com/@geoglyph3D"><img src="../../indexres/images/iconfinder_Youtube.png" width="24px" height="24px"  data-t="index.youtube"></a></li>
+			</ul>
+                    </div>
+
+                    <div class="col s12 m8">
+                        <div class="icon-block">
+                            <h2 class="center light-blue-text"><i class="material-icons">apps</i></h2>
+
+                             <h5 class="center">
+                                <a href="rail3m.html" id="train_button" class="btn-large waves-effect waves-light">
+                                    <i class="large material-icons">forward</i><span data-t="index.startrail"></span></a>
+                                <BR><BR>
+
+				<!--  <a href="rail2map.html"><img src="../images/GeoGlyphWorldMapThumbnail.png" alt="linemap 2d" style="vertical-align:middle" data-t="index.showmap"></a>  -->
+                      		<a id="train_map" href="rail2map.html"><img src="../images/GeoGlyphWorldMapThumbnail.png" alt="linemap 2d"></a><BR>
+				<a href="rail2map.html"><span data-t="index.showmap"></a>
+				<!--
+                                    <iframe width="420" height="236" src="https://www.youtube.com/embed/-2glfLIErb8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
+				    <!--  <iframe width="420" height="236" src="https://www.youtube.com/embed/nqpfa42aWKo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
+                             </h5>                           
+            
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m12">
+                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-client="ca-pub-3454291972460940"
+                             data-ad-slot="8905086772"
+                             data-ad-format="auto"></ins>
+                        <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+                </div>
+            </div>
+
+
+           <div class="section">
+                <div class="row">
+                    <div class="col s12 m12">
+                      <h2 id="menuhowtoplay" class="center light-blue-text" data-t="index.howtoplay"></h2>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+                            <!--  getting start -->
+                            <!--   after videos  2021/3/14 -->
+                            <!--  <iframe width="420" height="236" src="https://www.youtube.com/embed/EmDAHDmvjA8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
+			    <!-- <iframe width="420" height="236" src="https://www.youtube.com/embed/nqpfa42aWKo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> -->
+			    <iframe width="560" height="315" src="https://www.youtube.com/embed/1beg4cgcGb8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+			    
+                        </div>
+                    </div>
+		    <!--
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+			  <iframe width="420" height="236" src="https://www.youtube.com/embed/TEnys5tWWLM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>                        -->
+<!--
+
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+			  <iframe width="420" height="236" src="https://www.youtube.com/embed/MH9JDITSgiw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>
+		    
+                     <div class="col s12 m6 l6">
+                        <div class="icon-block">
+			  <iframe width="420" height="236" src="https://www.youtube.com/embed/LTNQSJvS0vs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>                       
+                    
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+			  <iframe width="420" height="236" src="https://www.youtube.com/embed/RSkrC088bds" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>                   
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+			  <iframe width="420" height="236" src="https://www.youtube.com/embed/QQJR7Hyn8Xk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>			  
+                        </div>
+                    </div>   
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+			  <iframe width="420" height="236" src="https://www.youtube.com/embed/J_Qs6Gdgap0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>                   
+                    <div class="col s12 m6 l6">
+                      <div class="icon-block">
+			<iframe width="420" height="236" src="https://www.youtube.com/embed/nA1yniHNKUM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                      </div>
+                    </div>                   
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+                        </div>
+                    </div>
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+                        </div>
+                    </div>                   
+                    <div class="col s12 m6 l6">
+                        <div class="icon-block">
+                        </div>
+                    </div>
+                     <div class="col s12 m6 l6">
+                        <div class="icon-block">
+                        </div>
+                    </div>                      
+
+-->
+		     
+                </div>
+            </div>
+   
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m12">
+                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-client="ca-pub-3454291972460940"
+                             data-ad-slot="8905086772"
+                             data-ad-format="auto"></ins>
+                        <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+                </div>
+            </div>
+ 
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m12">
+                        <h2 id="highpseedrail" class="center light-blue-text" data-t="index.highspeedrail"></h2>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12 m4">
+                      <a href="rail3m.html?tc=800XICE" id="train_button_ice" class="btn-large waves-effect waves-light  blue darken-4" style="width:210px;">
+                        <i class="large material-icons">forward</i>ICE <img src="../../indexres/images/Flag_of_Germany32.png">
+		      </a><BR>
+		      <a href="rail3m.html?tc=800XICE"> <img src="../images/ICEnetwork.png" alt="ICE network"></a>
+                    </div>
+                    <div class="col s12 m4">
+                      <a href="rail3m.html?tc=250XTGV" id="train_button_tgv" class="btn-large waves-effect waves-light  blue darken-4"  style="width:210px;">
+                        <i class="large material-icons">forward</i>TGV <img src="../../indexres/images/Flag_of_France32.png">
+		      </a><BR>
+		      <a href="rail3m.html?tc=250XTGV"> <img src="../images/TGVnetwork.png" alt="TGV network"></a>
+                    </div>
+                    <div class="col s12 m4">
+                      <a href="rail3m.html?tc=650XAVE" id="train_button_ave" class="btn-large waves-effect waves-light  blue darken-4"  style="width:210px;">
+                        <i class="large material-icons">forward</i>AVE <img src="../../indexres/images/Flag_of_Spain32.png">
+		      </a><BR>
+		      <a href="rail3m.html?tc=650XAVE"> <img src="../images/AVEnetwork.png" alt="AVE network"></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m12">
+                        <h2 id="geometrytool" class="center light-blue-text" data-t="index.geometrytool"></h2>
+                    </div>
+                </div>
+                <!--   Icon Section   -->
+                <div class="row">
+                    <div class="col s12 m4">
+                        <div class="icon-block">
+                            <h2 class="center light-blue-text"><i class="material-icons">edit</i></h2>
+                            <h5 class="center" data-t="index.geometryedit"></h5>
+                            <ul>
+                                <li data-t="index.geometryfeatures"></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m8">
+                        <div class="icon-block">
+                            <h2 class="center light-blue-text"><i class="material-icons">playlist_play</i></h2>
+                             <h5 class="center">
+                                <a href="../tools/index.html" id="train_tool_button" class="btn-large waves-effect waves-light  lime darken-4">
+                                    <i class="large material-icons">touch_app</i><span data-t="index.geometryedit"></a>
+                                    <BR>
+                             </h5>            
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m12">
+                        <h2 id="menucontact" class="center light-blue-text" data-t="index.contactus"></h2>
+                        <h5 class="center" data-t="index.contactmessage"></h5>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col s12 m6">
+                        <div class="info">
+                            <p><i class="material-icons">place</i>Tokyo, Japan</p>
+                            <p><i class="material-icons">mail</i>info＠geoglyph,info</p>
+                            <p><a href="https://github.com/hirakata-farm/GeoGlyphRail"><img src="../../indexres/images/GitHub-Mark-32px.png">Github</a></p>
+                            <p><a href="https://twitter.com/maptrain"><img src="../../indexres/images/iconfinder_twitter.png" width="24px" height="24px">@maptrain</a></p>
+                            <p><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="red-text"><img src="../../indexres/images/iconfinder_Youtube.png" width="24px" height="24px">Youtube Channel</a></p>
+                        </div>
+                    </div>
+                    <div class="col s12 m6">
+                        <form action="" method="post" class="contactForm">
+                            <input type="hidden" name="language" id="language" data-attr-t value-t="attribute.lang"/>
+                            <input type="hidden" name="checktype" id="checktype" value="ContactForm"/>
+                            <div class="row">
+                                <div class="input-field col s12">
+                                    <input placeholder="Name" id="name" name="name" type="text" class="validate" data-rule="minlen:4" data-msg="Please enter at least 4 chars">
+                                    <label for="name" data-t="index.name"></label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="input-field col s12">
+                                    <input id="email" name="email" type="email" class="validate" data-rule="email" data-msg="Please enter a valid email" >
+                                    <label for="email" data-t="index.email"></label>
+                                    <span class="helper-text" data-error="wrong" data-success="right">validation</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="input-field col s12">
+                                    <input placeholder="Question or Requests" id="subject" name="subject" type="text" class="validate"  data-rule="minlen:4" data-msg="Please enter at least 8 chars of subject" >
+                                    <label for="subject" data-t="index.subject"></label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="input-field col s12">
+                                    <textarea placeholder="Message" id="message" name="message" class="materialize-textarea"  data-rule="required" data-msg="Please write something for us"></textarea>
+                                    <label for="message" data-t="index.message"></label>
+                                </div>
+                            </div>
+                            <div class="text-center" id="sendmessage"><button type="submit" data-t="index.sendmessage"></button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <footer class="page-footer orange" id="menulanguages">
+            <div class="container">
+                <div class="row">
+                    <div class="col l6 m6 s12">
+                        <h5 class="white-text" data-t="index.project"></h5>
+                        <p class="grey-text text-lighten-4">
+                          <img src="../../indexres/images/geoglyph-logo-72b.png"><BR>
+			  <span data-t="index.description"></span>
+                            <BR><BR>
+                            <i class="material-icons">home</i><a href="https://earth.geoglyph.info/index.html" data-t="index.home"></a>
+                        </p>	  
+                    </div>
+                    <div class="col l3 m3 s12">
+                        <h5 class="white-text"><i class="material-icons">language</i><BR><span data-t="index.internationalize"></span></h5>
+                        <ul>
+                            <li><a class="white-text" href="../en/index.html"><img src="../../indexres/images/Flag_of_the_United_Kingdom32.png" data-t="index.english"></a></li>
+                            <li><a class="white-text" href="../fr/index.html"><img src="../../indexres/images/Flag_of_France32.png" data-t="index.french"></a></li>
+                            <li><a class="white-text" href="../de/index.html"><img src="../../indexres/images/Flag_of_Germany32.png"  data-t="index.german"></a></li>
+                            <li><a class="white-text" href="../hu/index.html"><img src="../../indexres/images/Flag_of_Hungary32.png" data-t="index.hungarian"></a></li>
+                            <li><a class="white-text" href="../it/index.html"><img src="../../indexres/images/Flag_of_Italy32.png" data-t="index.italian"></a></li>
+                            <li><a class="white-text" href="../ja/index.html"><img src="../../indexres/images/Flag_of_Japan32.png" data-t="index.japanese"></a></li>
+                            <li><a class="white-text" href="../pt/index.html"><img src="../../indexres/images/Flag_of_Portugal32.png" data-t="index.portuguess"></a></li>
+                            <li><a class="white-text" href="../es/index.html"><img src="../../indexres/images/Flag_of_Spain32.png" data-t="index.spanish"></a></li>
+                            <li><a class="white-text" href="../nl/index.html"><img src="../../indexres/images/Flag_of_the_Netherlands32.png" data-t="index.dutch"></a></li>
+                        </ul>
+                    </div>
+                    <div class="col l3 m3 s12">
+                        <h5 class="white-text"><i class="material-icons">link</i><BR><span data-t="index.libraries"></span></h5>
+                        <ul>
+                            <li><a class="white-text" href="https://cesiumjs.org"><i class="material-icons">launch</i>Cesium JS</a></li>
+                            <li><a class="white-text" href="https://leafletjs.com"><i class="material-icons">launch</i>Leaflet JS</a></li>
+			    <li><a class="white-text" href="https://jquery.com/"><i class="material-icons">launch</i>jQuery</a></li>
+			    <li><a class="white-text" href="https://turfjs.org/"><i class="material-icons">launch</i>Turf.js</a></li>
+			    <li><a class="white-text" href="https://bossanova.uk/jspreadsheet/v4/"><i class="material-icons">launch</i>Jspreadsheet</a></li>
+                            <li><a class="white-text" href="https://www.khronos.org/webgl"><i class="material-icons">launch</i>WebGL</a></li>
+                            <!-- <li><a class="white-text" href="https://openmaptiles.org"><i class="material-icons">launch</i>Open Map Tiles</a></li> -->
+                            <li><a class="white-text" href="http://www.trainfrontview.net/en/index.htm"><i class="material-icons">launch</i>Train Front View</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                <div class="container">
+                    Made by <a class="orange-text text-lighten-3" href="http://materializecss.com">Materialize</a>
+                </div>
+            </div>
+        </footer>
+
+        <div class="fixed-action-btn">
+            <a class="btn-floating btn-large red">
+                <i class="large material-icons">menu</i>
+            </a>
+            <ul>
+                <li><a class="btn-floating blue" href="#logo-container"><i class="material-icons">vertical_align_top</i></a></li>
+                <li><a class="btn-floating blue" href="#menucontact"><i class="material-icons">mail</i></a></li>
+                <li><a class="btn-floating blue" href="#menulanguages"><i class="material-icons">language</i></a></li>
+            </ul>
+        </div>
+
+        <script src="../../indexres/js/contactform.js"></script>
+        <!-- Lazy load -->    
+        <script src="../../cesium/Cesium.js"></script>   
+
+    </body>
+</html>

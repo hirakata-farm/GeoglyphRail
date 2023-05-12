@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Geoglyph geojson route Editor</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+
+<link rel="stylesheet" href="snaplib/leaflet.draw.css" charset="utf-8">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="libs/Control.SimpleMarkers.css" />
+<link rel="stylesheet" href="libs/Leaflet.Dialog.css"/>
+<link rel="stylesheet" href="libs/leaflet.contextmenu.min.css"/>
+
+<!-- jQuery API -->
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+ <!-- Make sure you put this AFTER Leaflet's CSS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+
+<script src="snaplib/leaflet.draw.js" charset="utf-8"></script>
+<script src="snaplib/leaflet.geometryutil.js" charset="utf-8"></script>
+<script src="snaplib/leaflet.snap.js" charset="utf-8"></script>
+
+<script src="libs/Control.SimpleMarkers.js"></script>
+<script src="libs/Leaflet.Dialog.js"></script>
+<script src="libs/leaflet.contextmenu.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-sortablejs@latest/jquery-sortable.js"></script>
+
+<!-- Materialize -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+<!--  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>  -->
+        
+<style>
+body {
+ padding: 0;
+ margin: 0;
+}
+html, body {
+ height: 100%;
+ font: 10pt "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+.page-footer {	padding-top: 10px; }
+.page-footer .container { width: 85%; }
+nav, .page-footer { background-color:  #1b1c1d; }
+.ui-dialog-titlebar { background-color:  #26a69a; }
+.sidenav { z-index: 9999; }
+.ui-dialog { z-index: 9999; }
+nav, .nav-wrapper, li { height: 42px; line-height: 42px; }
+nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i { height: 42px; line-height: 42px; }
+
+.chiptag { padding-left: 10px;cursor : pointer; border: solid 1px #fff;}
+/* .chip { cursor : pointer;}*/
+.dropdown-content { min-width: 300px !important; }
+</style>
+</head>
+<body>
+  <nav>
+    <div class="nav-wrapper">
+      <ul class="left">
+        <li><img src="img/Geoglyph-logo-s-l.png" style="height:38px;"></li><!-- accept="application/geo+json  -->
+        <li>GeoJSON<input type="file" id="gh_geojsonfile" onchange="ghFileSelectGeoJSON( this );" accept=".geojson">
+	<li>
+          <div class="preloader-wrapper small" id="gh_loader" style="width:32px;height:32px;">
+            <div class="spinner-layer spinner-green-only">
+              <div class="circle-clipper left">
+                <div class="circle"></div>
+              </div><div class="gap-patch">
+                <div class="circle"></div>
+              </div><div class="circle-clipper right">
+                <div class="circle"></div>
+              </div>
+            </div>
+        </div></li>
+        <li><BR></li>
+        <li><a class="modal-trigger btn-small" href="#gh_routefilemodal"><i class="small material-icons">save</i></a></li>
+	<li><a class="btn-small red darken-3" target="_blank" rel="noopener noreferrer" href="georoutefind.html"><i class="small material-icons right">open_in_new</i></a></li>
+	<li>
+	  <label>
+            <input type="checkbox" id="gh_synccheck" name="mapsync" />
+            <span>sync maps</span>
+	  </label>
+	</li>
+        <li><a class="btn-small red darken-3" href="javascript:ghSearchRoute();"><i class="small material-icons">sync</i></a>
+            
+        <li><a class="modal-trigger btn-small red darken-3" href="#gh_routeindexmodal"><i class="small material-icons">format_list_bulleted</i></a>
+        <li><a class="modal-trigger btn-small red darken-3" href="#gh_routenamemodal"><i class="small material-icons">playlist_add</i></a>            
+            
+            
+      </ul>
+
+      <ul class="right">
+        <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li>
+        <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
+        <li><a class="waves-effect waves-light modal-trigger" href="#gh_aboutmodal"><i class="material-icons">help_outline</i></a></li>
+      </ul>
+    </div>
+  </nav>
+<div id="gh_jsonmap" style="width:80%;height:90%;float:left"></div>
+<div class="container" style="width:540px;height:90%;float:right">
+  <div class="pointindexarea" style="width:180px;height:100%;background:#e8eaf6;float:left;padding-left:6px;">
+    <h5>Points</h5>
+    <!--  <a class="modal-trigger btn-small" href="#gh_pointfilemodal"><i class="small material-icons">save</i></a> -->
+    <a class="btn-small" href="javascript:ghHistoryMapPointIndex(-1);"><i class="small material-icons">undo</i></a>
+    <a class="btn-small" href="javascript:ghHistoryMapPointIndex(1);"><i class="small material-icons">redo</i></a>
+    <div class="pointindexareapart"  style="height:90%;overflow:scroll;">
+      <ul id="pointindex">
+      </ul>
+    </div>
+  </div>
+  <div class="pointroutearea" style="width:180px;height:100%;background:#ffebee;float:left;padding-left:6px;">
+    <h5>Route</h5>
+    <h5 id="gh_routename"></h5>
+    <div class="pointtargetareapart"  style="height:90%;overflow:scroll;">
+      <ol id="pointtarget" style="margin-left:-20px;">
+      </ol>
+    </div>
+  </div>
+  <div class="pointtrasharea" style="width:180px;height:100%;background:#efebe9;float:left;padding-left:6px;">
+    <h5>Trash</h5>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a class="modal-trigger btn-small" href="javascript:ghTrashPoints();" style="float:center"><i class="material-icons">delete</i></a><BR>
+    <div class="pointtrashareapart"  style="height:90%;overflow:scroll;">
+      <ul id="pointtrash">
+	<li> <li> <li> <li> <li> <li> <li>
+      </ul>
+    </div>
+  </div>
+</div>
+            
+
+<BR><BR>
+<textarea name="geodata" id="geodata" rows="3" cols="30" style="width:600px;"></textarea>
+<textarea name="pointdata" id="pointdata" rows="3" cols="30" style="width:600px;"></textarea>
+		
+<!-- Route file Modal Structure -->
+<div id="gh_routefilemodal" class="modal" style="height:300px;width:640px;">
+  <div class="modal-content">
+    <h4>Route Data</h4>
+    <i class="material-icons left">file_upload</i>Load RouteJSON<input type="file" id="gh_pointjsonfile" onchange="ghFileSelectRouteJSON( this );"  accept=".routejson">
+    <BR><BR><BR><BR>
+    <input type="text" size="124" id="gh_routefilename" value=""><BR>
+    <a href="javascript:ghDownloadRouteJSON();"><i class="material-icons left">file_download</i>Save Download</a>
+  </div>
+  <div class="modal-footer">
+    <a href="#!" class="modal-close yellow btn-flat">CLOSE<i class="material-icons right">close</i></a>
+  </div>
+</div>            
+<!-- Point file Modal Structure -->
+
+<!-- Route file Modal Structure -->
+<div id="gh_routeindexmodal" class="modal" style="height:60%;width:840px;">
+  <div class="modal-content">
+    <h4>Route List</h4>
+    <div id="gh_routeindexlist">
+    </div>
+  </div>
+  <div class="modal-footer">
+    <a href="#!" class="modal-close waves-effect btn blue-grey"><i class="material-icons right">close</i>CLOSE</a>
+    <a href="javascript:ghSelectRouteIndex();" class="modal-close waves-effect waves-green btn">Select</a>
+  </div>    
+</div>            
+<!-- Route file Modal Structure -->
+
+<!-- Route Name file Modal Structure -->
+<div id="gh_routenamemodal" class="modal" style="height:300px;width:640px;">
+    <div class="modal-content">
+        <h4>New Route Name</h4>
+        <input type="text" size="124" id="gh_newroutename" value=""><BR><BR>
+        <label><input type="radio" name="gh_newroutetype" value="copy"><span>Copy Current Route</span></label><BR>
+        <label><input type="radio" name="gh_newroutetype" value="blank"><span>Blank</span></label>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey">CLOSE</a>
+        <a href="javascript:ghNewRouteIndexName();" class="modal-close waves-effect waves-green btn">___OK_OK___</a>
+    </div>   
+</div>            
+<!-- Route Name Modal Structure -->
+
+
+<!-- About Modal Structure -->
+<div id="gh_aboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
+  <div class="modal-content">
+    <img src="img/Geoglyph-logo-s-l.png">
+    <h4>Geoglyph Rail 3D</h4>
+    <div id="gh_aboutcontent"></div>
+  </div>
+  <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+    <i class="material-icons">copyright</i> 2021 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat"><i class="material-icons right">close</i>CLOSE</a>
+  </div>
+</div>        
+<!-- About Modal Structure -->        
+        
+<!--  https://github.com/perliedman/geojson-path-finder -->
+<script src="js/ghGeoRouteBroadcast.js"></script>
+<script src="js/ghGeoRouteEdit.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Geoglyph Edit Timetable</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- Jquery -->
+  <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
+  <script src="libs/jquery.simple_csv.js"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+  <link rel="stylesheet" href="libs/Control.SimpleMarkers.css" />
+  <link rel="stylesheet" href="libs/Leaflet.Dialog.css"/>
+  <link rel="stylesheet" href="libs/leaflet.contextmenu.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+  <script src="libs/Control.SimpleMarkers.js"></script>
+  <script src="libs/Leaflet.Dialog.js"></script>
+  <script src="libs/leaflet.contextmenu.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+
+  <!-- Beauty Icon Plugins -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="libs/leaflet-beautify-marker-icon.css">
+  <script src="libs/leaflet-beautify-marker-icon.js"></script>
+
+  <!-- Materialize -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+  <!-- Jexcel -->
+  <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+  <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
+  <script src="https://jsuites.net/v4/jsuites.js"></script>
+  <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+  <!--
+  <script src="https://bossanova.uk/jexcel/v4/jexcel.js"></script>
+  <link rel="stylesheet" href="https://bossanova.uk/jexcel/v4/jexcel.css" type="text/css" />
+  <script src="https://bossanova.uk/jsuites/v3/jsuites.js"></script>
+  <link rel="stylesheet" href="https://bossanova.uk/jsuites/v3/jsuites.css" type="text/css" />
+  -->
+
+
+<!--     td.readonly { color: #0047a1 !important; } -->
+  <style>
+    body { padding: 0; margin: 0; }
+    html, body { height: 100%; width: 100%; }
+    .jexcel > tbody > tr > td.readonly { color:#0047a1; }
+
+    .tabs .tab {
+	text-transform: initial;
+    }
+    
+    .page-footer {	padding-top: 10px; }
+    .page-footer .container { width: 85%; }
+    nav, .page-footer {	background-color:  #1b1c1d; }
+    nav, .nav-wrapper, li { height: 42px; line-height: 42px; }
+    nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i { height: 42px; line-height: 42px; }
+    .dropdown-content { min-width: 300px !important; }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <div class="nav-wrapper">
+        <ul class="left">
+          <li><img src="img/Geoglyph-logo-s-l.png" style="height:38px;"></li>
+	  <li>WayJSON<input type="file" id="gh_wayjsonfile" onchange="ghFileSelectWayJSON(this);" accept=".wayjson">
+          <li>
+            <div class="preloader-wrapper small" id="gh_loader" style="width:32px;height:32px;">
+              <div class="spinner-layer spinner-green-only">
+                <div class="circle-clipper left">
+                  <div class="circle"></div>
+                </div><div class="gap-patch">
+                  <div class="circle"></div>
+                </div><div class="circle-clipper right">
+                  <div class="circle"></div>
+                </div>
+              </div>
+          </div></li>
+
+          <li><a class="modal-trigger btn-small" href="#gh_timefilemodal"><i class="material-icons left">storage</i></a></li>         
+          
+	  <li>
+            <div class="preloader-wrapper small" id="gh_loader" style="width:16px;height:16px;">
+              <div class="spinner-layer spinner-green-only">
+                <div class="circle-clipper left">
+                  <div class="circle"></div>
+                </div><div class="gap-patch">
+                  <div class="circle"></div>
+                </div><div class="circle-clipper right">
+                  <div class="circle"></div>
+                </div>
+              </div>
+          </div></li>
+          
+          <li><a class="waves-effect waves-light modal-trigger" href="#gh_settingmodal"><i class="small material-icons left">settings</i></a></li>               
+	  <li><a class="modal-trigger btn-small" href="#gh_convertunitmodal"><i class="material-icons left">system_update_alt</i></a></li>         
+          <li><span id="gh_linejsonname"></span></li>
+        </ul>
+        <ul class="right">
+          <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li>
+          <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
+          <li><a class="waves-effect waves-light modal-trigger" href="#gh_aboutmodal"><i class="material-icons">help_outline</i></a></li>
+        </ul>
+    </div>
+  </nav>
+
+  <div id="tabscontainer" class="row">
+    <ul id="table-tabs" class="tabs tabs-fixed-width">
+      <li class="tab col"><a class="active" href="#table-tab_C_MAP"><i class="small material-icons">map</i>MAP</a></li>
+    </ul>
+    <div id="table-tab_C_MAP" class="col s12">
+      <!--  <div id="geom_map" style="width:90%;height:90%;"></div> -->
+      <div id="geom_map" style="width:300px;height:400px;"></div>
+    </div>
+  </div>
+  
+  <!-- Time file Modal Structure -->
+  <div id="gh_timefilemodal" class="modal" style="height:300px;width:640px;">
+    <div class="modal-content">
+      <h4>Time Data</h4>
+      <i class="material-icons left">file_upload</i>Load TimeJSON<input type="file" id="gh_timejsonfile" onchange="ghUploadTimeJSON( this );" >
+      <BR><BR><BR><BR>
+      <input type="text" size="124" id="gh_timefilename" value=""><BR>
+      <a href="javascript:ghDownloadTimetable();"><i class="material-icons left">file_download</i>Save Download
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-close yellow btn-flat">CLOSE<i class="material-icons right">close</i></a>
+    </div>
+  </div>            
+  <!-- Time file Modal Structure -->
+ 
+  <!-- Setting Modal Structure -->
+  <div id="gh_settingmodal" class="modal" style="height:400px;width:600px;">
+    <div class="modal-content">
+      <h4>Under Construction</h4>
+      <!--  <p>A bunch of text</p> -->
+      <div>Increase / Decrease minutes:&nbsp;&nbsp;
+        <input type="number" name="unitcalcminutes" id="gh_unitcalcminutes" value="60" min="1" max="600" step="1" style="width:64px;">[min]
+      </div>      
+      <div>After insert column number:&nbsp;&nbsp;
+        <input type="number" name="insertaftercols" id="gh_inertaftercols" value="1" min="1" max="100" step="1" style="width:64px;">[cols]
+      </div>
+      <BR><BR>
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey">___NO_NO___</a>
+        <a href="javascript:ghSettingModalOK();" class="modal-close waves-effect waves-green btn">___OK_OK___<i class="material-icons right">send</i></a>
+      </div>
+    </div>
+  </div>
+  <!-- Setting Modal Structure -->  
+
+  <!-- Setting TrainID Modal Structure -->
+  <div id="gh_settrainidpropmodal" class="modal" style="height:400px;width:600px;">
+    <div class="modal-content">
+      <h4>TrainID <span id="gh_settrainidpropmodal_id"></span></h4>
+      <div>Marker (2D):&nbsp;&nbsp;
+	<input placeholder="default" id="gh_trainidmarker" type="text">
+      </div>      
+      <div>Model (3D):&nbsp;&nbsp;
+	<input placeholder="default" id="gh_trainidlocomotive" type="text">
+      </div>
+      <!--
+      <div>Stop distance from station center:&nbsp;&nbsp;
+        <input type="number" name="stopdistancefromstationcenter" id="gh_stopdistancefromstationcenter" value="40" min="5" max="200" step="5" style="width:64px;">[m]
+      </div>      -->
+      <BR><BR>
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey">___NO_NO___</a>
+        <a href="javascript:ghSetTrainIDPropModalOK();" class="modal-close waves-effect waves-green btn">___OK_OK___<i class="material-icons right">send</i></a>
+      </div>
+    </div>
+  </div>
+  <!-- Setting Modal Structure -->  
+
+  <!-- delete confirmation Modal Structure -->
+  <div id="gh_deletetrainconfirmmodal" class="modal" style="height:400px;width:400px;">
+    <div class="modal-content">
+      <h4>Reconfirmation</h4>
+      <div id="gh_deletetrain"></div>
+      Are you sure? you delet it.
+      <input id="gh_deletetraincolumn" type="hidden" value="">
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey">___NO_NO___</a>
+        <a href="javascript:ghDeleteTrainColumnModalOK();" class="modal-close waves-effect waves-green btn">___OK_OK___</a>
+      </div>
+    </div>
+  </div>
+  <!-- Delete confirmation Modal Structure -->
+  
+  <!-- Colmun Header Modal Structure -->
+  <div id="gh_trainidmodal" class="modal" style="height:400px;width:400px;">
+    <div class="modal-content">
+      <h4>Change Train ID</h4>
+      <div class="input-field">
+        <input placeholder="Train ID" id="gh_trainid" type="text">
+        <label for="gh_trainid" id="gh_trainid_label">Train ID ( column name )</label>
+	<input id="gh_trainid_prev" type="hidden" value="">
+	<input id="gh_trainid_column" type="hidden" value="">
+      </div>
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn blue-grey">___NO_NO___</a>
+        <a href="javascript:ghRenameTrainIDModalOK();" class="modal-close waves-effect waves-green btn">___OK_OK___</a>
+      </div>
+    </div>
+  </div>
+  <!-- Column Header Modal Structure -->
+
+  <!-- Convert unit Modal Structure -->
+  <div id="gh_convertunitmodal" class="modal" style="height:480px;width:640px;">
+    <div class="modal-content">
+      <h4>Get Unit data</h4>
+      <div class="input-field">
+        <input placeholder="linename" id="gh_linename" type="text">
+        <label for="gh_linename" id="gh_linename_label">LineID ( Line name )</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-close waves-effect btn blue-grey">___NO_NO___</a>
+      <a href="javascript:ghConvertUnitsData();" class="modal-close waves-effect waves-green btn">___OK_OK___</a>
+    </div>
+  </div>            
+  <!-- Convert unit Modal Structure -->
+
+  <!-- About Modal Structure -->
+  <div id="gh_aboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
+    <div class="modal-content">
+      <img src="img/Geoglyph-logo-s-l.png">
+      <h4>Geoglyph Rail Timetable</h4>
+      <div id="gh_aboutcontent"></div>
+      <iframe width="420" height="236" src="https://www.youtube.com/embed/EmDAHDmvjA8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+    <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+      <i class="material-icons">copyright</i> 2021 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat">___OK_OK___</a>
+    </div>
+  </div>        
+  <!-- About Modal Structure -->        
+
+  <script type="text/javascript" src="js/ghGeoTimeEdit.js"></script>
+</body>
+</html>
+ 

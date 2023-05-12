@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html data-attr-t lang-t="attribute.lang">
+    <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-64986417-1"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+
+            gtag('config', 'UA-64986417-1');
+        </script>
+
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+         <meta name="description" data-attr-t content-t="attribute.desc" lang-t="attribute.lang">
+        <meta name="keywords" data-attr-t content-t="attribute.keywords" lang-t="attribute.lang"/>
+
+        <title>Geoglyph Rail 3D select-map</title>
+
+        <!-- Jquery -->
+        <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
+
+        <!-- Materialize -->
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+        <!-- Leaflet -->
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js" integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ==" crossorigin=""></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-easybutton@2.0.0/src/easy-button.css">
+        <link rel="stylesheet" href="//earth.geoglyph.info/leaflet/L.Control.Sidebar.css">
+        <script src="https://unpkg.com/leaflet-easybutton@2.0.0/src/easy-button.js"></script>
+        <script src="//earth.geoglyph.info/leaflet/Polyline.encoded.js" charset="utf-8"></script>  
+        <script src="//earth.geoglyph.info/leaflet/leaflet-ant-path.js" charset="utf-8"></script>  
+        <script src="//earth.geoglyph.info/leaflet/L.Control.Sidebar.js"></script>
+
+        <style>
+            /* Always set the map height explicitly to define the size of the div
+             * element that contains the map. */
+            #linemap {
+                height: 100%;
+            }
+            /* Optional: Makes the sample page fill the window. */
+            html, body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .leaflet-sidebar {
+                width: 300px;
+            }
+            .leaflet-sidebar.left.visible ~ .leaflet-left {
+                left: 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Left Side Nav -->
+        <div id="sidebar">        
+          <img src="../images/geoglyph-logo-72b.png">
+	  <BR>
+	  <i class="tiny material-icons" style="margin-left:18px;font-size:16px;">done_all</i>
+	  <button id="checkallbutton" style="margin-left:8px;font-size:12px;"><i class="tiny material-icons" style="font-size:12px;">check_box</i> &nbsp; Check</buton>
+          <button id="uncheckallbutton" style="margin-left:12px;font-size:12px;"><i class="tiny material-icons" style="font-size:12px;">check_box_outline_blank</i>&nbsp; Uncheck</button>
+          <hr>
+          <div id="gh_country_list">
+          </div>                            
+        </div>                
+        
+        <div id="linemap"></div>
+        <div id="logo" style="top:10px;left:80px;position:fixed;z-index:999"><img src="../images/geoglyph-logo-72b.png"></div>
+
+        <script src="ghUncode.js"></script>
+        <script src="../js/ghRailSelectMap.js" charset="utf-8"></script>  
+    </body>
+</html>
