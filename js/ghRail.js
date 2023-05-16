@@ -11,14 +11,14 @@
 //     |- ghRail.js
 //     |- ghRailWeather.js
 //     |- ghRailBroadcast.js  ( Communicate for ghRailTime.js )
-//     |- ghRailUnitWorker.js ( thread ) include Geocode
+//     |- ghRailUnitWorker.js ( thread ) 
 //
 //
 //
 
 'use strict';
 
-var GH_REV = 'Revision 6.2';
+var GH_REV = 'Revision 6.3';
 const GH_DEBUG_CONSOLE = false;
 
 // Your access token can be found at: https://cesium.com/ion/tokens.
@@ -118,7 +118,12 @@ var GH_3DTILE_OSMBUILDING = null;  // OSM Building primitive
 //var GH_USE_3DTILE_TEXTURE = false;
 
 const GH_UNIT_TARGET_DISTANCE = 200; // unit [m] for extend train length target
+//  <-  GH_UNIT_TARGET_DISTANCE -- unit -- GH_UNIT_TARGET_DISTANCE ->
+//  <-                GH_UNIT_TARGET_DISTANCE * 2                  ->
 const GH_UNIT_RENDERING_DISTANCE_SQUARED = 4500*4500;
+const GH_UNIT_TARGET_DISTANCE_S = GH_UNIT_TARGET_DISTANCE * 1.9;
+const GH_UNIT_TARGET_DISTANCE_L = GH_UNIT_TARGET_DISTANCE * 2.1;
+
 
 //  2D layer
 var GH_LAYER = {
@@ -2423,228 +2428,37 @@ function __ghGetCartesianPositionLinestringSlice(trainid,linestring,distance) {
     return Cesium.Cartographic.toCartesian(cart);
 }
 
+function ghReCreateLineStringDetailLongs(coords,startcoord,stopcoord) {
 
-//function __distance_compare_ascend(a, b) {
-//    // https://www.webprofessional.jp/sort-an-array-of-objects-in-javascript/
-//    //  1.2.3.4.
-//  var comparison = 0;
-//  if (a.dis > b.dis) {
-//    comparison = 1;
-//  } else if (a.dis < b.dis) {
-//    comparison = -1;
-//  }
-//  return comparison;
-//}
-//function __distance_compare_descend(a, b) {
-//    // https://www.webprofessional.jp/sort-an-array-of-objects-in-javascript/
-//    //  4.3.2.1
-//  var comparison = 0;
-//  if (a.dis > b.dis) {
-//    comparison = -1;
-//  } else if (a.dis < b.dis) {
-//    comparison = 1;
-//  }
-//  return comparison;
-//}
-
-function __ghGetEdgePointOutPolygon(trainid,polygon,startid,step){
-    let coords = turf.invariant.getCoords( GH_UNIT_GEOM[trainid].line ) ;
-    //let points = [];
-    if ( step > 0 ) {
-	for ( var i = startid; i < startid + 100; i++ ) {
-	    if ( turf.booleanPointInPolygon.default(coords[i],polygon) ) {
-		// NOP
-	    } else {
-		return i;
-	    }
-	}
-    } else {
-	for ( var i = startid; i > startid - 100; i-- ) {
-	    if ( turf.booleanPointInPolygon.default(coords[i],polygon) ) {
-		// NOP
-	    } else {
-		return i;
-	    }
-	}
-    }
-    return -1;
-}
-function __ghGetEdgePointInPolygon(trainid,polygon,startid,step){
-    let coords = turf.invariant.getCoords( GH_UNIT_GEOM[trainid].line ) ;
-    //let points = [];
-    if ( step > 0 ) {
-	for ( var i = startid; i < startid + 100; i++ ) {
-	    if ( turf.booleanPointInPolygon.default(coords[i],polygon) ) {
-		return i;
-	    } else {
-		// NOP
-	    }
-	}
-    } else {
-	for ( var i = startid; i > startid - 100; i-- ) {
-	    if ( turf.booleanPointInPolygon.default(coords[i],polygon) ) {
-		return i;
-	    } else {
-		// NOP
-	    }
-	}
-    }
-    return -1;
-}
-function __ghGetEdgePointNearPoint(trainid,point,startid,stopid){
-    let coords = turf.invariant.getCoords( GH_UNIT_GEOM[trainid].line ) ;
-    //let points = [];
-    let dis = 100000000;
-    let idx = -1;
-    for ( var i = startid; i < stopid; i++ ) {
-	let len = turf.distance.default(coords[i],point,{units: 'meters'});
-	if ( len < dis ) {
-	    idx = i;
-	    dis = len;
-	}
-    }
-    return idx;
-}
-
-function ghReCreateLineStringDetail(trainid,startp,stopp){
-
-    let start = turf.helpers.point( startp );
-    let stop  = turf.helpers.point( stopp );
-    let fp1 = turf.nearestPointOnLine.default( GH_UNIT_GEOM[trainid].line, startp , {units: 'meters'});
-    let fp2 = turf.nearestPointOnLine.default( GH_UNIT_GEOM[trainid].line, stopp , {units: 'meters'});
-    let center  = turf.midpoint.default(startp,stopp);
+    let start = turf.helpers.point( startcoord );
+    let stop  = turf.helpers.point( stopcoord );
+    let center  = turf.midpoint.default(startcoord,stopcoord);
     let radius = turf.distance.default(start,center, {units: 'meters'});
     let circle = turf.circle.default(center,radius,{steps:16,units: 'meters'});
-    let coords = turf.invariant.getCoords( GH_UNIT_GEOM[trainid].line ) ;
-
-    //  check fp1 forward
-    let fp1_f = turf.booleanPointInPolygon.default(coords[fp1.properties.index+1],circle);
-    //  check fp1 backword
-    let fp1_b = false;
-    if ( fp1.properties.index == 0 ) {
-	fp1_b = turf.booleanPointInPolygon.default(coords[0],circle);
-    } else {
-	fp1_b = turf.booleanPointInPolygon.default(coords[fp1.properties.index-1],circle);
-    }
-
-    //  check fp2 forward
-    let fp2_f = turf.booleanPointInPolygon.default(coords[fp2.properties.index+1],circle);
-    //  check fp2 backword
-    let fp2_b = false;
-    if ( fp2.properties.index == 0 ) {
-	fp2_b = turf.booleanPointInPolygon.default(coords[0],circle);
-    } else {
-	fp2_b = turf.booleanPointInPolygon.default(coords[fp2.properties.index-1],circle);
-    }
-    //let fp2_b = turf.booleanPointInPolygon.default(coords[fp2.properties.index-1],circle);
-
-    if ( ! fp1_b && fp1_f ) {
-	// NOP Normal
-	return turf.lineSliceAlong.default(
-	    GH_UNIT_GEOM[trainid].line,
-	    fp1.properties.location,
-	    fp1.properties.location + GH_UNIT_TARGET_DISTANCE * 2.0 ,
-	    {units: 'meters'} );
-    }
-
-    let startidx = -1;
-    let stopidx = -1;
-    let isorder = false;
-    if ( fp2.properties.index > fp1.properties.index ) {
-	// Normal Order
-	isorder = true;
-    } else {
-	// Reverse Order
-	//console.log('rev');
-    }
-
-    // FIX fp1
-    if ( fp2_b && ! fp2_f ) {
-	if ( isorder ) {
-	    // Type E
-	    let fixfp1 = __ghGetEdgePointOutPolygon(trainid,circle,fp2.properties.index-1,-1);
-	    if ( fixfp1 < 0 ) {
-		console.log('Error Type E');
-		return null;
-	    } else {
-		let points = [];
-		startidx = fixfp1-1;
-		stopidx = fp2.properties.index+2;
-		if ( startidx > stopidx - 1 ) return null;
-		for ( var i = startidx; i < stopidx; i++ ) {
-		    points.push(coords[i]);
-		}
-		let res = turf.lineSlice.default(start,stop, turf.helpers.lineString(points) );
-		let reslength = turf.length.default(res,{units:'meters'});
-		if ( GH_DEBUG_CONSOLE ) console.log('Type E ' + trainid + ' ' + startidx + ' ' + stopidx + ' ' + reslength );
-		if ( reslength < GH_UNIT_TARGET_DISTANCE * 1.95 ) {
-		    return null;
-		} else {
-		    return res;
-		}
-	    }
-	} else {
-	    // Type F
-	    //let fixfp1 = __ghGetEdgePointInPolygon(trainid,circle,fp2.properties.index-50,fp2.properties.index-2);
-	    let fixfp1 = __ghGetEdgePointNearPoint(trainid,startp,fp2.properties.index-50,fp2.properties.index-2);
-	    if ( fixfp1 < 0 ) {
-		console.log('Error Type F');
-		return null;
-	    } else {
-		let points = [];
-		startidx = fixfp1-1;
-		stopidx = fp2.properties.index+2;
-		if ( startidx > stopidx - 1 ) return null;
-		for ( var i = startidx; i < stopidx; i++ ) {
-		    points.push(coords[i]);
-		}
-		let res = turf.lineSlice.default(start,stop, turf.helpers.lineString(points) );
-		let reslength = turf.length.default(res,{units:'meters'});
-		if ( GH_DEBUG_CONSOLE ) console.log('Type F ' + trainid + ' ' + startidx + ' ' + stopidx + ' ' + reslength );
-		if ( reslength < GH_UNIT_TARGET_DISTANCE * 1.95 ) {
-		    return null;
-		} else {
-		    return res;
-		}
-	    }
-	}
-    }
 
     let points = [];
-    if ( isorder ) {
-	startidx = fp1.properties.index;
-	stopidx = fp2.properties.index;
-	if ( startidx > stopidx - 1 ) return null;
-	for ( var i = startidx; i < stopidx+1; i++ ) {
-	    points.push(coords[i]);
+    let totaldistance = 0;
+    let jmax = coords.length - 1;
+    let j = 0;
+    let prevcoords = start;
+    points.push(startcoord);
+    while ( totaldistance < GH_UNIT_TARGET_DISTANCE_S ) {
+	let p = turf.helpers.point(coords[j]);
+	if ( turf.booleanPointInPolygon.default(p,circle) ) {
+	    points.push(coords[j]);
+	    totaldistance += turf.distance.default(prevcoords,p, {units: 'meters'});
+	    prevcoords = p;
 	}
-	let res = turf.lineSlice.default(start,stop, turf.helpers.lineString(points) );
-	let reslength = turf.length.default(res,{units:'meters'});
-	if ( GH_DEBUG_CONSOLE ) console.log('Type H on ' + trainid + ' ' + startidx + ' ' + stopidx + ' ' + reslength );
-	if ( reslength < GH_UNIT_TARGET_DISTANCE * 1.95 ) {
-	    return null;
-	} else {
-	    return res;
-	}
-    } else {
-	startidx = fp2.properties.index;
-	stopidx = fp1.properties.index;
-	if ( startidx > stopidx - 1 ) return null;
-	for ( var i = startidx; i < stopidx+1; i++ ) {
-	    points.push(coords[i]);
-	}
-	let res = turf.lineSlice.default(start,stop, turf.helpers.lineString(points.reverse()) );
-	let reslength = turf.length.default(res,{units:'meters'});
-	if ( GH_DEBUG_CONSOLE ) console.log('Type H rev ' + trainid + ' ' + startidx + ' ' + stopidx + ' ' + reslength );
-	if ( reslength < GH_UNIT_TARGET_DISTANCE * 1.95 ) {
-	    return null;
-	} else {
-	    return res;
-	}
+	j++;
+	if ( j > jmax ) break;
     }
-    return null;    
+    points.push(stopcoord);
+    if ( points.length < 3 ) {
+	return null;
+    } else {
+	return turf.helpers.lineString(points);
+    }
 }
-
 
 function ghUpdateUnitCoachSlice(trainid,locomotive,tposc,hposc) {
     // tposc  = target tail Cesium.Cartograpic
@@ -2661,22 +2475,24 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tposc,hposc) {
     let slicedcoords = turf.invariant.getCoords( sliced ) ;
     let slicedlength = turf.length.default(sliced,{units:'meters'});
     const checkdistance = 2;
-    if ( slicedlength < GH_UNIT_TARGET_DISTANCE * 1.95 ) {
+    let cdis = turf.distance.default(slicedcoords[0],start, {units: 'meters'});
+    if ( slicedlength < GH_UNIT_TARGET_DISTANCE_S ) {
 	// Wrong Slice No Rendering
-	if ( GH_DEBUG_CONSOLE ) console.log( "Wrong Line Slice " + slicedlength) ;
-	sliced = ghReCreateLineStringDetail(trainid,startp,stopp);
-	if ( sliced == null ) return;
-    } else if ( slicedlength > GH_UNIT_TARGET_DISTANCE * 2.1 ) {
-	sliced = ghReCreateLineStringDetail(trainid,startp,stopp);
-	if ( sliced == null ) return;
+	if ( GH_DEBUG_CONSOLE ) console.log( "Wrong Short Line Slice " + slicedlength) ;
+	return;
+    } else if ( slicedlength > GH_UNIT_TARGET_DISTANCE_L ) {
+	if ( GH_DEBUG_CONSOLE ) console.log( "Wrong Long Line Slice " + slicedlength) ;
+	if ( cdis < checkdistance ) {
+	    sliced = ghReCreateLineStringDetailLongs(slicedcoords,startp,stopp);
+	} else {
+	    sliced = ghReCreateLineStringDetailLongs(slicedcoords.reverse(),startp,stopp);
+	}
+	if ( sliced == null ) return;	
     } else {
-	let checkdistance1 = turf.distance.default(slicedcoords[0],start, {units: 'meters'});
-	if ( checkdistance1 < checkdistance ) {
+	if ( cdis < checkdistance ) {
 	    // NOP normal line string
-	    // Type A
 	} else {
 	    sliced = turf.helpers.lineString(slicedcoords.reverse() );
-	    // Type B
 	}
     }
 
@@ -3137,7 +2953,7 @@ function ghUpdateTitleMarqueeAndTimetable(ctime,multiplier,cartesian) {
 ///////////////////////////////////////
 
 function ghSetAboutContent() {
-    var data = "";
+    var data = "Geoglyph Rail " + GH_REV + '<BR>';
     //data += GH_REV + '<BR>';
     //data += '<BR>';
     let dwidth = window.innerWidth * window.devicePixelRatio;
