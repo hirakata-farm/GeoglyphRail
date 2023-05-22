@@ -28,7 +28,7 @@
 //    line-height: 1em;
 //}
 //
-var GH_REV = 'Revision 6.1';
+var GH_REV = 'Revision 6.2';
 const GH_DEBUG_CONSOLE = false;
 
 var GH_FIELD = null;
@@ -300,13 +300,16 @@ function ghDrawDiagramChart(stationy) {
 	let routename = units[i].route;
 	let way = units[i].way;
 	let timetable = units[i].timetable;
-
 	if ( lineid == GH_FIELDINDEX.lineid ) {
 	    var points = [];
 	    for ( let j=0;j<timetable.length;j=j+3) {
-		let xpos = _ghCalcDiagramXfromTimeStr(timetable[j]);
-		let ypos = _ghCalcDiagramYfromStation(timetable[j+1],stationy);
-                points.push([ ypos, xpos ]);
+		if ( timetable[j+2] == GH_TYPE_THROUGH ) {
+		    // NOP through point
+		} else {
+		    let xpos = _ghCalcDiagramXfromTimeStr(timetable[j]);
+		    let ypos = _ghCalcDiagramYfromStation(timetable[j+1],stationy);
+                    points.push([ ypos, xpos ]);
+		}
 	    }
             if ( points.length > 1 ) {
 		//var popup = L.popup({minWidth: 100, maxWidth: 300, closeButton:true}).setContent( txt );
