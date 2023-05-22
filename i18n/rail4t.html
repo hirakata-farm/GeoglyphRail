@@ -1,69 +1,68 @@
 <!DOCTYPE html>
 <html data-attr-t lang-t="attribute.lang">
-<head>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-64986417-1"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag('js', new Date());
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-56RY29XHWM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-56RY29XHWM');
+    </script>
+    <meta charset="UTF-8">
+    <title>Geoglyph Rail Timetable</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" data-attr-t content-t="attribute.desc" lang-t="attribute.lang">
+    <meta name="keywords" data-attr-t content-t="attribute.keywords" lang-t="attribute.lang"/>
 
-            gtag('config', 'UA-64986417-1');
-        </script>
+    <!-- Jquery -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="../../miniwindow/jquery-ui.min.css">
+    <script src="../../miniwindow/jquery-ui.min.js"></script>
 
-  <meta charset="UTF-8">
-  <title>Geoglyph Rail Timetable</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" data-attr-t content-t="attribute.desc" lang-t="attribute.lang">
-  <meta name="keywords" data-attr-t content-t="attribute.keywords" lang-t="attribute.lang"/>
-
-  <!-- Jquery -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
-  <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="../../miniwindow/jquery-ui.min.css">
-  <script src="../../miniwindow/jquery-ui.min.js"></script>
-
-  <!-- Cesium -->
-  <script src="../../cesium/Cesium.js"></script>
+    <!-- Cesium -->
+    <script src="../../cesium/Cesium.js"></script>
   
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
 
-  <!--    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin=""/> 
-  <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js" integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ==" crossorigin=""></script> -->
+    <!--    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js" integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ==" crossorigin=""></script> 
+    -->
   
-  <!-- Materialize -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- Materialize -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+    <!-- Jexcel -->
+    <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
+    <script src="https://jsuites.net/v4/jsuites.js"></script>
+    <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
 
-  <!-- Jexcel -->
-  <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
-  <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
-  <script src="https://jsuites.net/v4/jsuites.js"></script>
-  <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+    <!-- graphology -->
+    <script src="../js/graphology.min.js"></script>
+    <script src="../js/graphology-library.min.js"></script>
 
-  <!-- graphology -->
-  <script src="../js/graphology.min.js"></script>
-  <script src="../js/graphology-library.min.js"></script>
+    <!--   <script src="https://bossanova.uk/jexcel/v4/jexcel.js"></script>  -->
+    <!--     <link rel="stylesheet" href="https://bossanova.uk/jexcel/v4/jexcel.css" type="text/css" /> -->
+    <!--     <script src="https://bossanova.uk/jsuites/v3/jsuites.js"></script> -->
+    <!--     <link rel="stylesheet" href="https://bossanova.uk/jsuites/v3/jsuites.css" type="text/css" /> -->
 
-<!--   <script src="https://bossanova.uk/jexcel/v4/jexcel.js"></script>  -->
-<!--     <link rel="stylesheet" href="https://bossanova.uk/jexcel/v4/jexcel.css" type="text/css" /> -->
-<!--     <script src="https://bossanova.uk/jsuites/v3/jsuites.js"></script> -->
-<!--     <link rel="stylesheet" href="https://bossanova.uk/jsuites/v3/jsuites.css" type="text/css" /> -->
+    <link rel="stylesheet" type="text/css" href="../css/ghrailtimetable.css">
+  </head>
 
-  <link rel="stylesheet" type="text/css" href="../css/ghrailtimetable.css">
-</head>
-
-<body>
-  <nav>
-    <div class="nav-wrapper">
+  <body>
+    <nav>
+      <div class="nav-wrapper">
         <ul class="left">
           <li><img src="../images/Geoglyph-logo-s-l.png" style="height:38px;"></li>
 	  <li>&nbsp;&nbsp;&nbsp;</li>
@@ -93,72 +92,71 @@
         </ul>
         <ul class="right">
 	  <!--
-          <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li>
+              <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li>
 	  -->
           <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
           <li><a class="waves-effect waves-light modal-trigger" href="#gh_aboutmodal"><i class="material-icons">help_outline</i></a></li>
         </ul>
+      </div>
+    </nav>
+
+    <div id="ghDiagram"></div>
+
+    <!-- Sheet0 Dialog -->
+    <div id="gh_Sheet0Dialog0" title="Sheet0 Dialog">
+      <div id="ghSpreadsheet0"></div>
     </div>
-  </nav>
+    <!-- Sheet0 Dialog -->
+    
+    <!-- Sheet1 Dialog -->
+    <div id="gh_Sheet1Dialog1" title="Sheet1 Dialog">
+      <div id="ghSpreadsheet1"></div>
+    </div>
+    <!-- Sheet1 Dialog -->
 
-  <div id="ghDiagram"></div>
-
-  <!-- Sheet0 Dialog -->
-  <div id="gh_Sheet0Dialog0" title="Sheet0 Dialog">
-    <div id="ghSpreadsheet0"></div>
-  </div>
-  <!-- Sheet0 Dialog -->
-  
-  <!-- Sheet1 Dialog -->
-  <div id="gh_Sheet1Dialog1" title="Sheet1 Dialog">
-    <div id="ghSpreadsheet1"></div>
-  </div>
-  <!-- Sheet1 Dialog -->
-
-  <!-- Setting Modal Structure -->
-  <div id="gh_settingmodal" class="modal" style="height:600px;width:600px;">
-    <div class="modal-content">
-      <h4 data-t="timetable.underconstruction"></h4>
-      <div><span data-t>timetable.minutesparam</span>:&nbsp;&nbsp;
-        <input type="number" name="blinkinterval" id="gh_blinkinterval" value="1" min="0.5" max="5" step="0.5" style="width:64px;">[sec]
-      </div>      
-      <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn blue-grey" data-t="modal.no"></a>
-        <a href="javascript:ghSettingModalOK();" class="modal-close waves-effect waves-green btn"><i class="material-icons right">send</i><span data-t="modal.ok"></span></a>
+    <!-- Setting Modal Structure -->
+    <div id="gh_settingmodal" class="modal" style="height:600px;width:600px;">
+      <div class="modal-content">
+	<h4 data-t="timetable.underconstruction"></h4>
+	<div><span data-t>timetable.minutesparam</span>:&nbsp;&nbsp;
+          <input type="number" name="blinkinterval" id="gh_blinkinterval" value="1" min="0.5" max="5" step="0.5" style="width:64px;">[sec]
+	</div>      
+	<div class="modal-footer">
+          <a href="#!" class="modal-close waves-effect btn blue-grey" data-t="modal.no"></a>
+          <a href="javascript:ghSettingModalOK();" class="modal-close waves-effect waves-green btn"><i class="material-icons right">send</i><span data-t="modal.ok"></span></a>
+	</div>
       </div>
     </div>
-  </div>
-  <!-- Setting Modal Structure -->
+    <!-- Setting Modal Structure -->
   
-  <!-- About Modal Structure -->
-  <div id="gh_aboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
-    <div class="modal-content">
-      <img src="../images/Geoglyph-logo-s-l.png">
-      <h4>Geoglyph Rail Timetable</h4>
-      <div id="gh_aboutcontent"></div>
-      <iframe width="420" height="236" src="https://www.youtube.com/embed/1beg4cgcGb8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>
-    <div class="modal-footer" style="background:#424242;color:#b0bec5;">
-      <i class="material-icons">copyright</i> 2021 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat" data-t="modal.ok"></a>
-    </div>
-  </div>        
-  <!-- About Modal Structure -->
+    <!-- About Modal Structure -->
+    <div id="gh_aboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
+      <div class="modal-content">
+	<img src="../images/Geoglyph-logo-s-l.png">
+	<h4>Geoglyph Rail Timetable</h4>
+	<div id="gh_aboutcontent"></div>
+	<iframe width="420" height="236" src="https://www.youtube.com/embed/1beg4cgcGb8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+	<i class="material-icons">copyright</i> 2021 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat" data-t="modal.ok"></a>
+      </div>
+    </div>        
+    <!-- About Modal Structure -->
 
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-  <ins class="adsbygoogle"
-       style="display:block"
-       data-ad-client="ca-pub-3454291972460940"
-       data-ad-slot="8905086772"
-       data-ad-format="auto"></ins>
-  <script>
-    (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <ins class="adsbygoogle"
+	 style="display:block"
+	 data-ad-client="ca-pub-3454291972460940"
+	 data-ad-slot="8905086772"
+	 data-ad-format="auto"></ins>
+    <script>
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
     
-
-  <!--  <script type="text/javascript" src="ghLang.js"></script> -->
-  <script type="text/javascript" src="../js/turfRail.min.js"></script>
-  <script type="text/javascript" src="../js/ghRailBroadcast.js"></script>
-  <script type="text/javascript" src="../js/ghRailTime.js"></script>
-</body>
+    <!--  <script type="text/javascript" src="ghLang.js"></script> -->
+    <script type="text/javascript" src="../js/turfRail.min.js"></script>
+    <script type="text/javascript" src="../js/ghRailBroadcast.js"></script>
+    <script type="text/javascript" src="../js/ghRailTime.js"></script>
+  </body>
 </html>
  
