@@ -1229,10 +1229,18 @@ function ghUpdateBlinkCells() {
 	for ( let j=3;j<timetable.length;j=j+3) {
 	    let t1 = __ghGetCesiumClock(timetable[j],GH_FIELD.timezone)
 	    let sd = Cesium.JulianDate.secondsDifference(t1,ct);
-	    if ( sd > 0 ) { 
-		station0 = timetable[j+1-3];
+	    if ( sd > 0 && timetable[j+2] != GH_TYPE_THROUGH ) {
+		//  Search Previous Stop Station
+		let sidx = j-3;
+		for ( let k=j-1;k>0;k=k-3) {
+		    if ( timetable[k] != GH_TYPE_THROUGH ) {
+			sidx = k-2;
+			break;
+		    };
+		}
+		station0 = timetable[sidx+1];
 		station1 = timetable[j+1];
-		t0 = __ghGetCesiumClock(timetable[j-3],GH_FIELD.timezone);
+		t0 = __ghGetCesiumClock(timetable[sidx],GH_FIELD.timezone);
 		sd = Cesium.JulianDate.secondsDifference(ct,t0);
 		let b = Cesium.JulianDate.secondsDifference(t1,t0);
 		ratio = Math.abs(sd)/b; ///  Calc
