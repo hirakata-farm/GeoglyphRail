@@ -18,7 +18,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.3';
+var GH_REV = 'Revision 6.4';
 const GH_DEBUG_CONSOLE = false;
 
 // Your access token can be found at: https://cesium.com/ion/tokens.
@@ -692,11 +692,12 @@ function ghInitCesiumViewer() {
 	shadows : false,
 	vrButton: false,
 	terrainShadows : Cesium.ShadowMode.DISABLED,
+	baseLayer : Cesium.ImageryLayer.fromProviderAsync(
+	    Cesium.ArcGisMapServerImageryProvider.fromBasemapType(
+		Cesium.ArcGisBaseMapType.SATELLITE
+	    )
+	),
 	automaticallyTrackDataSourceClocks : true,
-	imageryProvider : new Cesium.ArcGisMapServerImageryProvider({
-	    url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
-            enablePickFeatures: false,
-	}),
 	contextOptions : {
             webgl : {
 		powerPreference: 'high-performance'
@@ -704,18 +705,20 @@ function ghInitCesiumViewer() {
 	}
     });
 
-    GH_TPV[0] = new Cesium.createWorldTerrain({
+    GH_TPV[0] = Cesium.Terrain.fromWorldTerrain({
 	requestWaterMask: false,
-	requestVertexNormals : true
+	requestVertexNormals: true
     });
-    GH_TPV[1] = new Cesium.createWorldTerrain({
+    GH_TPV[1] = Cesium.Terrain.fromWorldTerrain({
 	requestWaterMask: true,
-	requestVertexNormals : true
+	requestVertexNormals: true
     });
-    // Ellipsoid
-    GH_TPV[2] = new Cesium.EllipsoidTerrainProvider();
 
-    GH_V.terrainProvider = GH_TPV[0];
+    // Ellipsoid
+//    GH_TPV[2] = new Cesium.EllipsoidTerrainProvider();
+
+    GH_V.scene.setTerrain( GH_TPV[0] );
+
     GH_V.scene.globe.depthTestAgainstTerrain = true;
 
     //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
@@ -1103,13 +1106,13 @@ function ghEnableCesiumWaterEffect(flag) {
 	GH_V.scene.sun = new Cesium.Sun();
         GH_V.shadows = true;
 	GH_V.terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY;
-	GH_V.terrainProvider = GH_TPV[1];
+	GH_V.scene.setTerrain( GH_TPV[1] );
     } else {
 	GH_V.scene.globe.enableLighting = false;
 	GH_V.scene.sun = null; //undefined;
         GH_V.shadows = false;
 	GH_V.terrainShadows = Cesium.ShadowMode.DISABLED;
-	GH_V.terrainProvider = GH_TPV[0];
+	GH_V.scene.setTerrain( GH_TPV[0] );
     }
 }
 function ghEnableCesiumTunnel(flag) {
