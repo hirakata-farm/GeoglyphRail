@@ -18,11 +18,12 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.4';
+var GH_REV = 'Revision 6.5';
 const GH_DEBUG_CONSOLE = false;
 
 // Your access token can be found at: https://cesium.com/ion/tokens.
 Cesium.Ion.defaultAccessToken = '___CESIUM_TOKEN___';
+Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
 
 // https://github.com/CesiumGS/cesium/issues/8959
 //Cesium.ModelOutlineLoader.hasExtension = function() { return false; }
@@ -77,6 +78,9 @@ var GH_A = null;  // Cesium Container Animation model
 var GH_M = null;  // Leaflet Container Object
 var GH_M_LAYER = []; // Leaflet Tile Layer
 //var GH_M_AUTO_CENTER = false;
+
+var GH_PHOTOREALISTIC_3DTILE = false;
+var GH_MINI_V = null;
 
 //////////////////////////////////////////
 // Main Root Data Object
@@ -673,9 +677,9 @@ function __ghSetPickEntity(ent) {
 
 }
 
-function ghInitCesiumViewer() {
+function ghInitCesiumViewerDefault(domid) {
 
-    GH_V = new Cesium.Viewer('ghCesiumContainer',{
+    GH_V = new Cesium.Viewer(domid,{
 	animation : false,
 	baseLayerPicker : false,
 	fullscreenButton : false,
@@ -692,12 +696,12 @@ function ghInitCesiumViewer() {
 	shadows : false,
 	vrButton: false,
 	terrainShadows : Cesium.ShadowMode.DISABLED,
+	automaticallyTrackDataSourceClocks : true,
 	baseLayer : Cesium.ImageryLayer.fromProviderAsync(
 	    Cesium.ArcGisMapServerImageryProvider.fromBasemapType(
 		Cesium.ArcGisBaseMapType.SATELLITE
 	    )
 	),
-	automaticallyTrackDataSourceClocks : true,
 	contextOptions : {
             webgl : {
 		powerPreference: 'high-performance'
@@ -714,13 +718,7 @@ function ghInitCesiumViewer() {
 	requestVertexNormals: true
     });
 
-    // Ellipsoid
-//    GH_TPV[2] = new Cesium.EllipsoidTerrainProvider();
-
-    GH_V.scene.setTerrain( GH_TPV[0] );
-
     GH_V.scene.globe.depthTestAgainstTerrain = true;
-
     //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
     
     //GH_V.resolutionScale = Cesium.Math.clamp(val/100, 0.1, 1.0);
@@ -734,6 +732,7 @@ function ghInitCesiumViewer() {
 
     GH_C = new Cesium.ClockViewModel(GH_V.clock);
     GH_A = new Cesium.AnimationViewModel(GH_C);
+    GH_S = GH_V.scene;
 
     //
     //  Rendering Slow Message
@@ -745,10 +744,184 @@ function ghInitCesiumViewer() {
     //
     // Show tile queue loading
     //
-    GH_V.scene.globe.tileLoadProgressEvent.addEventListener(ghTilequeueLoading);
-    
+    GH_S.globe.tileLoadProgressEvent.addEventListener(ghTilequeueLoading);
+    GH_S.setTerrain( GH_TPV[0] );
+
     ghRenameTimelineLabel();
 
+    //
+    // Timeline observe	 Ad-Hook
+    //
+    Cesium.knockout.getObservable(GH_C, 'shouldAnimate').subscribe(function(value) {
+	// false when the clock is paused.
+	if ( !value ) {
+	    // Playing and Click Timeline -> stop 
+	    ghStopCesiumScene();
+	    ghStopTitleMarquee();
+	    //ghChangePlayPauseButton(GH_IS_PLAYING);
+	    ghChangePlayPauseButton(false);
+	    ghUpdateStatusbarDatetime(null);
+	} else {
+	    // Stopping -> Click Play button
+	    // NOP
+	}
+    });
+
+    //
+    // Cesium Screen Mouse Click
+    //
+    var act = new Cesium.ScreenSpaceEventHandler(GH_V.scene.canvas);
+    act.setInputAction(
+	function (evt) {
+            var pick = GH_V.scene.pick(evt.position);
+	    if ( Cesium.defined(pick) && Cesium.defined(pick.id) ) {
+		if ( Cesium.defined(pick.id.position) ) {
+		    __ghSetPickEntity(pick.id);
+		    
+		    //console.log(pick.id);
+		    // pick.id is Entity Object , Not id text
+		    // ^^^^^^^^^^^^^^^^^
+		    //console.log( "PICK " + pick.id ); // Object
+		    //console.log( "PICK " + pick.id.id );  10ES_S_9020_c_2 ...
+
+		}
+            }
+	},
+	Cesium.ScreenSpaceEventType.LEFT_CLICK
+    );
+
+    act.setInputAction(
+	function (evt) {
+	    // wheel up evt return 120
+	    // wheel down evt return -120
+	    let val = parseFloat(evt/GH_MOUSE_WHEEL_UNIT);
+	    GH_CAM_DISTANCE = GH_CAM_DISTANCE + val;
+	    if ( GH_CAM_DISTANCE < GH_CAM_DISTANCE_MIN ) GH_CAM_DISTANCE = GH_CAM_DISTANCE_MIN;
+	},
+	Cesium.ScreenSpaceEventType.WHEEL
+    );
+
+    // https://groups.google.com/g/cesium-dev/c/DTJ6TEN04U8
+    act.setInputAction(
+	function(click) {
+	    if ( GH_CAM_MODE == GH_CAM_MODE_NONE
+		 || GH_CAM_MODE == GH_CAM_MODE_TRACKED
+		 || GH_CAM_MODE == GH_CAM_MODE_ABOVE ) {
+		// NOP
+	    } else {
+		GH_IS_DRAGGING = true;
+		GH_V.scene.screenSpaceCameraController.enableRotate = false;
+		Cesium.Cartesian2.clone(click.position, GH_MOUSE_POSITION);
+		//entity.position = mousePositionProperty;
+	    }
+        },
+	Cesium.ScreenSpaceEventType.LEFT_DOWN
+    );
+
+    act.setInputAction(
+	function(movement) {
+            if (GH_IS_DRAGGING) {
+		let currentpos = {};
+		Cesium.Cartesian2.clone(movement.endPosition, currentpos);
+		let val = parseFloat((currentpos.y-GH_MOUSE_POSITION.y)/GH_MOUSE_DRAG_UNIT);
+		GH_CAM_ALT = GH_CAM_ALT + val;
+		if ( GH_CAM_ALT < GH_CAM_ALT_MIN ) GH_CAM_ALT = GH_CAM_ALT_MIN;
+            }
+	},
+	Cesium.ScreenSpaceEventType.MOUSE_MOVE
+    );
+    act.setInputAction(
+	function(click) {
+            if(GH_IS_DRAGGING) {
+		GH_IS_DRAGGING = false;
+		GH_V.scene.screenSpaceCameraController.enableRotate = true;
+            }
+	},
+	Cesium.ScreenSpaceEventType.LEFT_UP
+    );
+    
+}
+function ghInitCesiumViewerGoogle(domid) {
+
+    GH_PHOTOREALISTIC_3DTILE = true;
+    
+    GH_V = new Cesium.Viewer(domid,{
+	animation : false,
+	baseLayerPicker : false,
+	fullscreenButton : false,
+	geocoder : false,
+	homeButton : true,
+	infoBox : false,
+	skyBox : false,
+	sceneModePicker : false,
+	selectionIndicator : true,
+	timeline : true,
+	navigationHelpButton : true,
+	sceneMode : Cesium.SceneMode.SCENE3D,
+	scene3DOnly : true,
+	shadows : false,
+	vrButton: false,
+	terrainShadows : Cesium.ShadowMode.DISABLED,
+	automaticallyTrackDataSourceClocks : true,
+	contextOptions : {
+            webgl : {
+		powerPreference: 'high-performance'
+            }
+	}
+    });
+
+    //GH_V.scene.globe.depthTestAgainstTerrain = true;
+    //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
+    
+    GH_C = new Cesium.ClockViewModel(GH_V.clock);
+    GH_A = new Cesium.AnimationViewModel(GH_C);
+
+    GH_MINI_V = new Cesium.Viewer('ghCesiumMini',{
+	animation : false,
+	baseLayerPicker : false,
+	fullscreenButton : false,
+	geocoder : false,
+	homeButton : false,
+	infoBox : false,
+	skyBox : false,
+	sceneModePicker : false,
+	selectionIndicator : false,
+	timeline : false,
+	navigationHelpButton : false,
+	sceneMode : Cesium.SceneMode.SCENE3D,
+	scene3DOnly : true,
+	shadows : false,
+	vrButton: false,
+	terrainShadows : Cesium.ShadowMode.DISABLED
+    });
+    GH_TPV[0] = Cesium.Terrain.fromWorldTerrain({
+	requestWaterMask: false,
+	requestVertexNormals: true
+    });
+    GH_TPV[1] = Cesium.Terrain.fromWorldTerrain({
+	requestWaterMask: true,
+	requestVertexNormals: true
+    });
+
+    GH_S = GH_MINI_V.scene;
+    //GH_S.globe.show = false;
+    GH_S.globe.depthTestAgainstTerrain = true;
+    GH_S.setTerrain( GH_TPV[0] );
+    
+    //
+    //  Rendering Slow Message
+    //
+//    GH_V.extend(Cesium.viewerPerformanceWatchdogMixin, {
+//	lowFrameRateMessage : GH_WARN_MSG['tooslow']
+//    }); 
+
+    //
+    // Show tile queue loading
+    //
+    //GH_V.scene.globe.tileLoadProgressEvent.addEventListener(ghTilequeueLoading);
+    __setupGoogle3D();
+    
+    ghRenameTimelineLabel();
     //
     // Timeline observe	 Ad-Hook
     //
@@ -1106,13 +1279,13 @@ function ghEnableCesiumWaterEffect(flag) {
 	GH_V.scene.sun = new Cesium.Sun();
         GH_V.shadows = true;
 	GH_V.terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY;
-	GH_V.scene.setTerrain( GH_TPV[1] );
+	GH_S.setTerrain( GH_TPV[1] );
     } else {
 	GH_V.scene.globe.enableLighting = false;
 	GH_V.scene.sun = null; //undefined;
         GH_V.shadows = false;
 	GH_V.terrainShadows = Cesium.ShadowMode.DISABLED;
-	GH_V.scene.setTerrain( GH_TPV[0] );
+	GH_S.setTerrain( GH_TPV[0] );
     }
 }
 function ghEnableCesiumTunnel(flag) {
@@ -1791,7 +1964,7 @@ function ghAdjustPitchHeightForTerrain(cam,model,h) {
 	}
     }
     
-    var cam_terrain = GH_V.scene.globe.getHeight(cam_latlng);
+    var cam_terrain = GH_S.globe.getHeight(cam_latlng);
     let newcam = null;
     let offset = 1.0;
     let newmodel = null;
@@ -1804,8 +1977,7 @@ function ghAdjustPitchHeightForTerrain(cam,model,h) {
 	}
     }
 
-    let model_terrain = GH_V.scene.globe.getHeight(model_latlng);
-
+    let model_terrain = GH_S.globe.getHeight(model_latlng);
     let hr = 0;
     if ( cam_latlng.height > cam_terrain + offset ) {
 	if ( hr > 0 ) {
@@ -2252,7 +2424,7 @@ function __ghGetTerrainHeight(trainid,posc) {
     // posc = Cesium.Cartographic(longitude,latitude,height);
     //
     //GH_V.scene.globe.getHeight(current_carto)
-    let h = GH_V.scene.globe.getHeight(posc);
+    let h = GH_S.globe.getHeight(posc);
     
     if ( GH_USE_TUNNEL ) {
 	let lineprop = GH_UNIT_GEOM[trainid].lineprop;
@@ -2516,7 +2688,7 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tposc,hposc) {
 	    if ( entity.label.show ) {
 		if ( GH_USE_TUNNEL ) {
 		    let ca = GH_V.scene.globe.ellipsoid.cartesianToCartographic(currentpos);
-		    let ch = GH_V.scene.globe.getHeight(ca);
+		    let ch = GH_S.globe.getHeight(ca);
 		    if ( ca.height < ch ) {
 			entity.label.eyeOffset = new Cesium.Cartesian3(0.0, GH_TRAIN_LABEL_Y_OFFSET + ( ch - ca.height ) , 0.0);
 		    } else {
@@ -2734,6 +2906,11 @@ function ghUpdateCesiumScene(scene,currenttime) {
     }
 
     //ghCheckMemoryDeprecated(currenttime);
+    if ( GH_PHOTOREALISTIC_3DTILE ) {
+	GH_MINI_V.camera.setView({
+	    destination: GH_V.camera.positionWC
+	});
+    }
     
 }
 
@@ -4083,7 +4260,8 @@ $(document).ready(function(){
     ghInitInputForm();
 
     //
-    ghInitCesiumViewer();
+    //ghInitCesiumViewerDefault('ghCesiumContainer');
+    ghInitCesiumViewerGoogle('ghCesiumContainer');
 
     //
     ghInitSpeedoMeter();
@@ -4099,6 +4277,30 @@ $(document).ready(function(){
 //
     //ghAvoidOperation();
 
+    
 });
 
+async function __setupGoogle3D() {
+    //  google Mpa Tiles API
+    // https://cesium.com/learn/cesiumjs-learn/cesiumjs-photorealistic-3d-tiles/
+    // https://developers.google.com/maps/documentation/embed/get-api-key?hl=ja
+    
+    try {
+	const GH_GOOGLE_TILESET = await Cesium.createGooglePhotorealistic3DTileset();
+	//  Google API
+	GH_V.scene.globe.show = false;
+	// The globe does not need to be displayed,
+	// since the Photorealistic 3D Tiles include terrain
+	
+	GH_V.scene.primitives.add(GH_GOOGLE_TILESET);
+	console.log(`Google OK Tileset `);
+	//alert(`Google Tileset is OK`);
+    } catch (error) {
+	console.log(`GOOGL Failed to load tileset: ${error}`);
+    }
+}
+
+
 console.log( " Cesium " + Cesium.VERSION + " jQuery " + jQuery.fn.jquery + " leaflet " + L.version );
+
+

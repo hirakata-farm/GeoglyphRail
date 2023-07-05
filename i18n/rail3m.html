@@ -75,6 +75,7 @@
     <nav>
       <div class="nav-wrapper">
         <ul class="left">
+	  <li><div id="ghCesiumMini" style="width: 16px; height: 16px; margin: 0; padding: 0;"></div>
           <li><img src="../images/Geoglyph-logo-s-l.png" style="height:38px;"></li>
 	  <li>&nbsp;&nbsp;&nbsp;</li>
           <li>GeoGlyph Rail
@@ -106,7 +107,6 @@
           </div></li>
           <li><span id="ghtilequeue" style="color:#b0bec5"></span></li>
         </ul>
-
         <ul class="right">
 	  <!--
           <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li> -->
@@ -136,7 +136,7 @@
       <table style="width: 480px;height:44px;margin:auto;overflow:hidden;">
 	<tr>
           <!-- <td style="width:24px;padding:0px 0px;"><i class="material-icons center" id="multipliericon">network_check</i> -->
-	  <td id="ghcesiummultiplier-field" style="width:180px;padding: 3px 3px;"><input type="range" name="cesiummultiplier" id="ghcesiummultiplier" min="-10" max="10" step="1" value="1"/>
+	  <td id="ghcesiummultiplier-field" style="width:180px;padding: 3px 3px;"><input type="range" name="cesiummultiplier" id="ghcesiummultiplier" min="-18" max="18" step="1" value="1"/>
 
           <td style="width:24px;padding:3px 3px;">
 	    <a href="javascript:ghOnclickOpenTimePicker();">
@@ -156,6 +156,8 @@
 	</tr>	    
       </table>
     </div>
+
+    
 
     <!-- Viewpoint Dialog -- https://www.osaka-kyoiku.ac.jp/~joho/html5_ref/border_attr.php -->
     <div id="ghViewpointDialog" title="Viewpoint Control">
@@ -431,7 +433,7 @@
     <script>
       (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
-    
+
     <!--
     <script src="ghLang.js"></script>
     <script src="../js/ghRailWeather.js"></script>
