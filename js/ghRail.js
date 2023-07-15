@@ -25,7 +25,7 @@ const GH_DEBUG_CONSOLE = false;
 Cesium.Ion.defaultAccessToken = '___CESIUM_TOKEN___';
 
 //////////////////////////////////////////////
-const GH_PHOTOREALISTIC_3DTILE = true;
+const GH_PHOTOREALISTIC_3DTILE = false;
 //const GH_PHOTOREALISTIC_TILESET
 if ( GH_PHOTOREALISTIC_3DTILE ) {
     Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
@@ -134,7 +134,9 @@ const GH_UNIT_TARGET_DISTANCE = 200; // unit [m] for extend train length target
 const GH_UNIT_RENDERING_DISTANCE_SQUARED = 4500*4500;
 const GH_UNIT_TARGET_DISTANCE_S = GH_UNIT_TARGET_DISTANCE * 1.9;
 const GH_UNIT_TARGET_DISTANCE_L = GH_UNIT_TARGET_DISTANCE * 2.1;
-
+var GH_UNIT_HEIGHT = {}
+const GH_UNIT_HEIGHT_SIN = Math.sin( 7 * Math.PI / 180 ) ; //  7 deg
+const GH_UNIT_TARGET_DISTANCE_SQUARED = GH_UNIT_TARGET_DISTANCE * GH_UNIT_TARGET_DISTANCE;
 
 //  2D layer
 var GH_LAYER = {
@@ -2422,16 +2424,52 @@ function ghUnMapTrainMarker(id){
 //    // [ Lat , Lon ]
 //    return [ cp[ cp.length-1][1], cp[cp.length-1][0]  ]
 //}
-function __ghGetTerrainHeight(trainid,posc) {
-    // posc = Cesium.Cartographic(longitude,latitude,height);
+function __ghClampTerrainCartesian(trainid,cartesian) {
+    let mposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(cartesian);
+    let height = __ghGetTerrainHeight(trainid,mposc,null);
+    mposc.height = height;
+    return Cesium.Cartographic.toCartesian(mposc);
+}
+function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
+    // cartopos = Cesium.Cartographic(longitude,latitude,height);
     //
     //GH_V.scene.globe.getHeight(current_carto)
     let h = 0;
     if ( GH_PHOTOREALISTIC_3DTILE ) {
-	h = __sampleHeightsPhotorealisticGoogle3D(posc);
+	h = __sampleHeightsPhotorealisticGoogle3D(cartopos);
     } else {
-	h = GH_S.globe.getHeight(posc);
+	h = GH_S.globe.getHeight(cartopos);
     }
+    ///////////////////////
+    if ( prevcheckid != null ) {
+	let cartesian = Cesium.Cartographic.toCartesian(cartopos);
+	let checkid = trainid + prevcheckid;
+	if ( GH_UNIT_HEIGHT[checkid] ) {
+	    let d = Cesium.Cartesian3.distanceSquared(cartesian, GH_UNIT_HEIGHT[checkid].cartesian);
+	    if ( d < GH_UNIT_TARGET_DISTANCE_SQUARED ) {
+		let diff = Math.abs ( h - GH_UNIT_HEIGHT[checkid].height ) ;
+		if ( diff > Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
+		    h = GH_UNIT_HEIGHT[checkid].height;
+		} else {
+		    GH_UNIT_HEIGHT[checkid] = {
+			'cartesian' : cartesian,
+			'height' : h
+		    }
+		}
+	    } else {
+		GH_UNIT_HEIGHT[checkid] = {
+		    'cartesian' : cartesian,
+		    'height' : h
+		}
+	    }
+	} else {
+	    GH_UNIT_HEIGHT[checkid] = {
+		'cartesian' : cartesian,
+		'height' : h
+	    }
+	}
+    }
+    ///////////////////////
     
     if ( GH_USE_TUNNEL ) {
 	let lineprop = GH_UNIT_GEOM[trainid].lineprop;
@@ -2443,7 +2481,7 @@ function __ghGetTerrainHeight(trainid,posc) {
 	//    'length'
         //  ]
 	//
-	let point = turf.helpers.point( [ Cesium.Math.toDegrees(posc.longitude), Cesium.Math.toDegrees(posc.latitude) ] );
+	let point = turf.helpers.point( [ Cesium.Math.toDegrees(cartopos.longitude), Cesium.Math.toDegrees(cartopos.latitude) ] );
 	let checkid = -1;
 	let distance = 0;
 	for (var i = 0,ilen=lineprop.length; i < ilen ; i++) {
@@ -2494,6 +2532,7 @@ function __ghGetTerrainHeight(trainid,posc) {
     }
 }
 
+
 function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance) {
 
     // tposc  = target tail Cesium.Cartograpic
@@ -2503,7 +2542,7 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 
 	let tailp = turf.helpers.point( [ Cesium.Math.toDegrees(tposc.longitude), Cesium.Math.toDegrees(tposc.latitude)  ] );
 	let headp = turf.helpers.point( [ Cesium.Math.toDegrees(hposc.longitude) , Cesium.Math.toDegrees(hposc.latitude) ] );   
-	var height = __ghGetTerrainHeight(trainid,tposc);
+	var height = __ghGetTerrainHeight(trainid,tposc,null);
 
 	var circle = turf.circle.default(tailp,distance,{steps:32,units:'meters'});
 	var crosspoint = turf.lineIntersect.default(GH_UNIT_GEOM[trainid].line, circle) ;
@@ -2512,7 +2551,7 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 	} else if ( crosspoint.features.length < 2 ) {
 	    //  Wrong data ?? console.log('Wrong intersect ' + trainid + ' ' + distance );
 	    let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[0].geometry.coordinates[0], crosspoint.features[0].geometry.coordinates[1] ,height);
-            ncart.height = __ghGetTerrainHeight(trainid,ncart);
+            ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
 	    return Cesium.Cartographic.toCartesian(ncart);
 	} else if (  crosspoint.features.length < 3 ) {
 	    let d0 = turf.distance.default(crosspoint.features[0], headp ,{units: 'meters'});
@@ -2520,13 +2559,13 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 	    if ( d1 > d0 ) {
 		//  Select d0 point
 		let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[0].geometry.coordinates[0], crosspoint.features[0].geometry.coordinates[1] ,height);
-		ncart.height = __ghGetTerrainHeight(trainid,ncart);
+		ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
 		return Cesium.Cartographic.toCartesian(ncart);
 		//return new Cesium.Cartesian3.fromDegrees( crosspoint.features[0].geometry.coordinates[0], crosspoint.features[0].geometry.coordinates[1] ,height );
             } else {
 		//  Select d1 point
 		let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[1].geometry.coordinates[0], crosspoint.features[1].geometry.coordinates[1] ,height);
-		ncart.height = __ghGetTerrainHeight(trainid,ncart);
+		ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
 		return Cesium.Cartographic.toCartesian(ncart);
 		//return new Cesium.Cartesian3.fromDegrees( crosspoint.features[1].geometry.coordinates[0], crosspoint.features[1].geometry.coordinates[1] ,height );
 	    }
@@ -2542,7 +2581,7 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 		}
 	    }
 	    let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[di].geometry.coordinates[0], crosspoint.features[di].geometry.coordinates[1] ,height);
-	    ncart.height = __ghGetTerrainHeight(trainid,ncart);
+	    ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
 	    return Cesium.Cartographic.toCartesian(ncart);
 	    //return new Cesium.Cartesian3.fromDegrees( crosspoint.features[di].geometry.coordinates[0], crosspoint.features[di].geometry.coordinates[1] ,height );
 	}
@@ -2551,42 +2590,44 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 function __ghGetCoachEntityKey(id,num) {
     return id + '_coach_' + num;
 }
+
+
+////////////////////////////////
 function ghUpdateUnitData(trainid,ct,headentity,tailentity) {
 
     // Head Target
-    let hpos = new Cesium.Cartesian3();
-    headentity.position.getValue(ct,hpos);
-    let hposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(hpos);
-
-    // Marker Target ( center )
-//    let mpos = new Cesium.Cartesian3();
-//    markentity.position.getValue(ct,mpos);
-//    let mposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(mpos);
+    let headcartesian = new Cesium.Cartesian3();
+    headentity.position.getValue(ct,headcartesian);
+//    let hposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(hpos);
 
     // Tail Target
-    let tpos = new Cesium.Cartesian3();
-    tailentity.position.getValue(ct,tpos);
-    let tposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(tpos);
+    let tailcartesian = new Cesium.Cartesian3();
+    tailentity.position.getValue(ct,tailcartesian);
+//    let tposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(tpos);
 
     let locomotive = GH_FIELD.units[ GH_UNIT_GEOM[trainid].fid ].locomotive;
-    if ( Cesium.defined( hposc ) && Cesium.defined( tposc ) ) {
-	if ( GH_UNIT_GEOM[trainid] ) {
 
+    if ( headcartesian.equals(Cesium.Cartesian3.ZERO) || tailcartesian.equals(Cesium.Cartesian3.ZERO) ) {
+        ghUnMapTrainMarker(trainid);
+	ghUnloadUnitCoach(trainid,GH_LOCOMOTIVE[locomotive]);  //  Probabry , processed in Cesium 
+    } else {
+	if ( GH_UNIT_GEOM[trainid] ) {
 	    //  Update Loeaflet Train Marker
+	    let hposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(headcartesian);
 	    ghMapTrainMarker(trainid,new L.LatLng( Cesium.Math.toDegrees(hposc.latitude) , Cesium.Math.toDegrees(hposc.longitude)) );
 	    
 	    if ( GH_LOCOMOTIVE[locomotive] ) {
 		if ( GH_UNIT_GEOM[trainid].loadstatus ) {
-		    let far =  Cesium.Cartesian3.distanceSquared( GH_V.camera.positionWC, hpos );
+		    let far =  Cesium.Cartesian3.distanceSquared( GH_V.camera.positionWC, headcartesian );
 		    if ( far > GH_UNIT_RENDERING_DISTANCE_SQUARED ) {
-			ghUpdateUnitCoachPoint(trainid,GH_LOCOMOTIVE[locomotive],hposc);
+			ghUpdateUnitCoachPoint(trainid,GH_LOCOMOTIVE[locomotive],headcartesian);
 		    } else {
-			ghUpdateUnitCoachSlice(trainid,GH_LOCOMOTIVE[locomotive],tposc,hposc);
+			ghUpdateUnitCoachSlice(trainid,GH_LOCOMOTIVE[locomotive],tailcartesian,headcartesian);
 		    }
 		} else {
-		    var ori = new Cesium.Quaternion();
-		    headentity.orientation.getValue(ct,ori);
-		    ghLoadUnitCoach(trainid,GH_LOCOMOTIVE[locomotive],tposc,hposc,ori);
+		    let orient = new Cesium.Quaternion();
+		    headentity.orientation.getValue(ct,orient);
+		    ghLoadUnitCoach(trainid,GH_LOCOMOTIVE[locomotive],tailcartesian,headcartesian,orient);
 		}
 	    } else {
 		// Load Locomotive Data
@@ -2596,17 +2637,14 @@ function ghUpdateUnitData(trainid,ct,headentity,tailentity) {
 	} else {
 	    // No Unit Data,  this trdainid
 	}
-    } else {
-        ghUnMapTrainMarker(trainid);
-	ghUnloadUnitCoach(trainid,GH_LOCOMOTIVE[locomotive]);  //  Probabry , processed in Cesium 
     }
     
 }
 
-function __ghGetCartesianPositionLinestringSlice(trainid,linestring,distance) {
+function __ghGetCartesianPositionLinestringSlice(trainid,linestring,distance,checkid) {
     let cp = turf.invariant.getCoords( turf.lineSliceAlong.default(linestring,0,distance,{units: 'meters'}) );
     let cart = new Cesium.Cartographic.fromDegrees(cp[cp.length-1][0] ,cp[ cp.length-1][1]);
-    cart.height = __ghGetTerrainHeight(trainid,cart);
+    cart.height = __ghGetTerrainHeight(trainid,cart,checkid);
     return Cesium.Cartographic.toCartesian(cart);
 }
 
@@ -2642,12 +2680,17 @@ function ghReCreateLineStringDetailLongs(coords,startcoord,stopcoord) {
     }
 }
 
-function ghUpdateUnitCoachSlice(trainid,locomotive,tposc,hposc) {
+function ghUpdateUnitCoachSlice(trainid,locomotive,tailpos,headpos) {
     // tposc  = target tail Cesium.Cartograpic
     // hposc  = target head Cesium.Cartograpic
     
+    // tailpos  = target tail Cesium.Cartesian3
+    // headpos  = target head Cesium.Cartesian3
+    
     let model = locomotive.data.model;
     let modellen = model.length;
+    let hposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(headpos);
+    let tposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(tailpos);
 
     let startp = [ Cesium.Math.toDegrees(tposc.longitude), Cesium.Math.toDegrees(tposc.latitude)  ];
     let start = turf.helpers.point(startp);
@@ -2678,11 +2721,11 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tposc,hposc) {
 	}
     }
 
-    let nextpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[0]);
+    let nextpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[0],99);
     let prevvel = Cesium.Cartesian3.ONE;
     for (var i = 0; i < modellen ; i++) {
 	let entity = GH_V.entities.getById( __ghGetCoachEntityKey(trainid,i) );
-	let currentpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[i+1]);
+	let currentpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[i+1],i);
 
 	//////////////////////////////  Normalized Error work around //////////////////////////////
 	let surf = new Cesium.Cartesian3();
@@ -2737,37 +2780,38 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tposc,hposc) {
     }
 
 }
-function ghUpdateUnitCoachPoint(trainid,locomotive,mposc) {
-    // mposc  = target marker Cesium.Cartograpic
-    
+function ghUpdateUnitCoachPoint(trainid,locomotive,cartesian) {
     let model = locomotive.data.model;
     let modellen = model.length;
 
     for (var i = 0; i < modellen ; i++) {
 	let entity = GH_V.entities.getById( __ghGetCoachEntityKey(trainid,i) );
         if ( i == 0 ) {
-	    let height = __ghGetTerrainHeight(trainid,mposc);
-	    mposc.height = height;
-            entity.position = Cesium.Cartographic.toCartesian(mposc);
+	    entity.position = __ghClampTerrainCartesian(trainid,cartesian);
 	} else {
 	    entity.show = false;
 	}
     }
 }
-function ghLoadUnitCoach(trainid,locomotive,tposc,hposc,orientation) {
+function ghLoadUnitCoach(trainid,locomotive,tailpos,headpos,orientation) {
 
+    // tailpos = cartesian3
+    // headpos = cartesian3
+    
     let model = locomotive.data.model;
     let modellen = model.length;
+    let hposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(headpos);
+    let tposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(tailpos);
 
     var coach = null;
     var scale = 1.0;
     for (var i = 0; i < modellen ; i++) {
 	let uri = ghGetResourceUri(model[i]);
-	let pos = __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,locomotive.position[i+1]);
+	let position = __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,locomotive.position[i+1]);
         if ( i == 0 ) {
             coach = GH_V.entities.add({
 		"id" : __ghGetCoachEntityKey(trainid,i),
-		"position" : pos,
+		"position" : position,
 		"orientation" : orientation,
 		"model" : {
 		    uri : uri,
@@ -2788,7 +2832,7 @@ function ghLoadUnitCoach(trainid,locomotive,tposc,hposc,orientation) {
 	} else {
             coach = GH_V.entities.add({
 		"id" : __ghGetCoachEntityKey(trainid,i),
-		"position" : pos,
+		"position" : position,
 		"orientation" : orientation,
 		"model" : {
 		    uri : uri ,
