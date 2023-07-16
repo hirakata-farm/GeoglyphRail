@@ -20,18 +20,10 @@
 
 var GH_REV = 'Revision 6.6';
 const GH_DEBUG_CONSOLE = false;
+var GH_PHOTOREALISTIC_3DTILE = false;
 
 // Your access token can be found at: https://cesium.com/ion/tokens.
 Cesium.Ion.defaultAccessToken = '___CESIUM_TOKEN___';
-
-//////////////////////////////////////////////
-const GH_PHOTOREALISTIC_3DTILE = false;
-//const GH_PHOTOREALISTIC_TILESET
-if ( GH_PHOTOREALISTIC_3DTILE ) {
-    Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
-}
-//////////////////////////////////////////////
-
 
 // https://github.com/CesiumGS/cesium/issues/8959
 //Cesium.ModelOutlineLoader.hasExtension = function() { return false; }
@@ -135,8 +127,9 @@ const GH_UNIT_RENDERING_DISTANCE_SQUARED = 4500*4500;
 const GH_UNIT_TARGET_DISTANCE_S = GH_UNIT_TARGET_DISTANCE * 1.9;
 const GH_UNIT_TARGET_DISTANCE_L = GH_UNIT_TARGET_DISTANCE * 2.1;
 var GH_UNIT_HEIGHT = {}
-const GH_UNIT_HEIGHT_SIN = Math.sin( 7 * Math.PI / 180 ) ; //  7 deg
 const GH_UNIT_TARGET_DISTANCE_SQUARED = GH_UNIT_TARGET_DISTANCE * GH_UNIT_TARGET_DISTANCE;
+var GH_UNIT_HEIGHT_SIN = Math.sin( 7 * Math.PI / 180 ) ; //  7 deg
+
 
 //  2D layer
 var GH_LAYER = {
@@ -2451,16 +2444,12 @@ function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
 		if ( diff > Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
 		    h = GH_UNIT_HEIGHT[checkid].height;
 		} else {
-		    GH_UNIT_HEIGHT[checkid] = {
-			'cartesian' : cartesian,
-			'height' : h
-		    }
+		    GH_UNIT_HEIGHT[checkid].cartesian = cartesian;
+		    GH_UNIT_HEIGHT[checkid].height = h;
 		}
 	    } else {
-		GH_UNIT_HEIGHT[checkid] = {
-		    'cartesian' : cartesian,
-		    'height' : h
-		}
+		GH_UNIT_HEIGHT[checkid].cartesian = cartesian;
+		GH_UNIT_HEIGHT[checkid].height = h;
 	    }
 	} else {
 	    GH_UNIT_HEIGHT[checkid] = {
@@ -3694,6 +3683,12 @@ function ghGetHtmlArgument(type) {
             if ( y[0] == "fd" && type == "fd" ) {
                 ret = y[1];
             }
+            if ( y[0] == "gt" && type == "gt" ) {
+                ret = y[1];
+            }
+            if ( y[0] == "bp" && type == "bp" ) {
+                ret = y[1];
+            }
         }
     }
     return ret;
@@ -4283,6 +4278,33 @@ if(window.BroadcastChannel){
 //
 /////////////////////////////
 
+function ghInitHtmlArgument() {
+    //  gt = Google 3D tile ( photorealistic 3D tile )
+    //       default false
+    //  bp = Bump Angle
+    //       default 7 ( deg )
+    //
+    let arg = ghGetHtmlArgument('gt');
+    if ( arg == "nop" ) {
+	// NOP
+    } else {
+	GH_PHOTOREALISTIC_3DTILE = true;
+	Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
+	console.log('use Google Photorealistic 3D tile');
+    }
+    arg = ghGetHtmlArgument('bp');
+    if ( arg == "nop" ) {
+	// NOP
+    } else {
+	let b = parseFloat(arg);	
+	if ( b > 0 && b < 40 ) {
+	    GH_UNIT_HEIGHT_SIN = Math.sin( b * Math.PI / 180 ) ;
+	    console.log('use Bump Angle ' + b + ' degree');
+	}
+    }
+}
+
+
 $(document).ready(function(){
 
 //    if(typeof jQuery == "undefined"){ //jQuery
@@ -4295,6 +4317,9 @@ $(document).ready(function(){
 //	alert(GH_ERROR_MSG['leafletlibrarynotsupport']);
 //	location.href = 'index.html';
 //    }
+
+    ghInitHtmlArgument();
+
     ghLoadFieldIndex();
 
     //
@@ -4312,9 +4337,9 @@ $(document).ready(function(){
 
     //
     if ( GH_PHOTOREALISTIC_3DTILE ) {
+	ghInitCesiumViewerGoogle('ghCesiumContainer');
 	$( '#tilecachesizeslider' ).val(2000);
 	ghSetCesiumCacheSize(2000);
-	ghInitCesiumViewerGoogle('ghCesiumContainer');
     } else {
 	ghInitCesiumViewerDefault('ghCesiumContainer');
     }
