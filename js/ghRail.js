@@ -63,7 +63,8 @@ var GH_TZ_OFFSET_MINUTES = 0; // minutes
 var GH_USE_TUNNEL = false;
 const GH_SET_POSITION_TO_LINESTRING = 8.0; // [m]
 const GH_DISTANCE_TO_LINESTRING = 1.0; // [m]
-const GH_TUNNEL_DEPTH = 10; // [m] under terrain default depth 
+const GH_TUNNEL_DEPTH = 10; // [m] under terrain default depth
+const GH_TUNNEL_EDGE_METER = 30; // [m] 
 
 //var GH_IS_RECIPROCAL = false; // Speed slower The reciprocal of 5 is 1/5
 
@@ -128,8 +129,7 @@ const GH_UNIT_TARGET_DISTANCE_S = GH_UNIT_TARGET_DISTANCE * 1.9;
 const GH_UNIT_TARGET_DISTANCE_L = GH_UNIT_TARGET_DISTANCE * 2.1;
 var GH_UNIT_HEIGHT = {}
 const GH_UNIT_TARGET_DISTANCE_SQUARED = GH_UNIT_TARGET_DISTANCE * GH_UNIT_TARGET_DISTANCE;
-var GH_UNIT_HEIGHT_SIN = Math.sin( 7 * Math.PI / 180 ) ; //  7 deg
-
+var GH_UNIT_HEIGHT_SIN = Math.sin( 4 * Math.PI / 180 ) ; //  4 deg
 
 //  2D layer
 var GH_LAYER = {
@@ -2423,6 +2423,7 @@ function __ghClampTerrainCartesian(trainid,cartesian) {
     mposc.height = height;
     return Cesium.Cartographic.toCartesian(mposc);
 }
+
 function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
     // cartopos = Cesium.Cartographic(longitude,latitude,height);
     //
@@ -2435,26 +2436,42 @@ function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
     }
     ///////////////////////
     if ( prevcheckid != null ) {
+	if ( h != 0 ) cartopos.height = h;
 	let cartesian = Cesium.Cartographic.toCartesian(cartopos);
-	let checkid = trainid + prevcheckid;
-	if ( GH_UNIT_HEIGHT[checkid] ) {
-	    let d = Cesium.Cartesian3.distanceSquared(cartesian, GH_UNIT_HEIGHT[checkid].cartesian);
+	let tid = trainid + prevcheckid;
+	if ( GH_UNIT_HEIGHT[tid] ) {
+	    let d = Cesium.Cartesian3.distanceSquared(cartesian, GH_UNIT_HEIGHT[tid].cartesian);
 	    if ( d < GH_UNIT_TARGET_DISTANCE_SQUARED ) {
-		let diff = Math.abs ( h - GH_UNIT_HEIGHT[checkid].height ) ;
-		if ( diff > Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
-		    h = GH_UNIT_HEIGHT[checkid].height;
+		let slope = h - GH_UNIT_HEIGHT[tid].height ;
+		if ( slope > 0 ) {
+		    // Uphill
+		    if ( slope > Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
+			h = GH_UNIT_HEIGHT[tid].height;
+		    } else {
+			GH_UNIT_HEIGHT[tid].cartesian = cartesian;
+			GH_UNIT_HEIGHT[tid].height = h;
+		    }
+		    GH_UNIT_HEIGHT[tid].type = 'up';
 		} else {
-		    GH_UNIT_HEIGHT[checkid].cartesian = cartesian;
-		    GH_UNIT_HEIGHT[checkid].height = h;
+		    // Downhill
+		    if ( slope < -1*Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
+			let ratio = Math.sqrt(d) / GH_UNIT_TARGET_DISTANCE;
+			h = ratio * slope + GH_UNIT_HEIGHT[tid].height;
+		    } else {
+			GH_UNIT_HEIGHT[tid].cartesian = cartesian;
+			GH_UNIT_HEIGHT[tid].height = h;
+		    }
+		    GH_UNIT_HEIGHT[tid].type = 'down';		    
 		}
 	    } else {
-		GH_UNIT_HEIGHT[checkid].cartesian = cartesian;
-		GH_UNIT_HEIGHT[checkid].height = h;
+		GH_UNIT_HEIGHT[tid].cartesian = cartesian;
+		GH_UNIT_HEIGHT[tid].height = h;
 	    }
 	} else {
-	    GH_UNIT_HEIGHT[checkid] = {
+	    GH_UNIT_HEIGHT[tid] = {
 		'cartesian' : cartesian,
-		'height' : h
+		'height' : h,
+		'type' : null
 	    }
 	}
     }
@@ -2497,15 +2514,15 @@ function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
 		let startdis = turf.distance.default(point,startp ,{units: 'meters'});
 		let exitdis = turf.distance.default(point,exitp ,{units: 'meters'});
 		let depth = GH_TUNNEL_DEPTH;
-		if ( startdis < 30 ) {
+		if ( startdis < GH_TUNNEL_EDGE_METER ) {
 		    //depth = 0.5 * startdis;
 		    if ( h > lineprop[checkid].startpos[2] ) {
 			depth = h - lineprop[checkid].startpos[2];
 		    } else {
-			depth = 0.087 * startdis; // tan 5 deg
+			depth = 0.0699 * startdis; // tan 4 deg
 		    }
-		} else if ( exitdis < 30 ) {
-		    depth = 0.087 * exitdis; // tan 5deg
+		} else if ( exitdis < GH_TUNNEL_EDGE_METER ) {
+		    depth = 0.0699 * exitdis; // tan 4 deg
 		} else {
 		    // NOP  default depht
 		}
