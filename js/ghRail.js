@@ -4301,13 +4301,19 @@ function ghInitHtmlArgument() {
     //  bp = Bump Angle
     //       default 7 ( deg )
     //
+    let url = location.hostname;
     let arg = ghGetHtmlArgument('gt');
     if ( arg == "nop" ) {
 	// NOP
     } else {
-	GH_PHOTOREALISTIC_3DTILE = true;
-	Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
-	console.log('use Google Photorealistic 3D tile');
+	///////////////////////////////////////////////
+	///  Only Localhost 
+	///
+	if ( url.match(/^192/) ) {
+	    GH_PHOTOREALISTIC_3DTILE = true;
+	    Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
+	    console.log('use Google Photorealistic 3D tile');
+	}
     }
     arg = ghGetHtmlArgument('bp');
     if ( arg == "nop" ) {
