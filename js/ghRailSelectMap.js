@@ -293,7 +293,12 @@ $.ajax({
     url: GH_FIELDINDEX.file
 }).done(function(res) {
     //
-    GH_URILIST = res.urilist;
+    if ( location.hostname.match(/^192/) ) {
+	GH_URILIST = res.urilist_local;
+    } else {
+	GH_URILIST = res.urilist_www;
+    }
+    //GH_URILIST = res.urilist;
     //
     GH_FIELDINDEX.uncodelist = res.uncodelist;
     GH_FIELDINDEX.fieldlist = res.fieldlist;
