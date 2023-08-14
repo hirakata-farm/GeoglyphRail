@@ -4172,7 +4172,11 @@ function ghLoadFieldData(uri) {
 	
 	if ( GH_DEBUG_CONSOLE ) console.log( GH_FIELD );
 	ghShowLoader(false);
-	ghCheckData(GH_FIELD.id,GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].name);
+	if ( GH_LOCAL_CONSOLE ) {
+	    // NOP
+	} else {
+	    ghCheckData(GH_FIELD.id,GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].name);
+	}
 	
     }).fail(function(XMLHttpRequest, textStatus,errorThrown){
 	var msg = "train data cannot load ";
