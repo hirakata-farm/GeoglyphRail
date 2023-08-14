@@ -18,7 +18,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.6';
+var GH_REV = 'Revision 6.7';
 const GH_DEBUG_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
 
@@ -95,7 +95,11 @@ var GH_FIELDINDEX = {
 }
 function ghGetResourceUri(file) {
     if ( GH_FIELDINDEX.data ) {
-	var urilist = GH_FIELDINDEX.data.urilist;
+	if ( GH_LOCAL_CONSOLE ) {
+	    let urilist = GH_FIELDINDEX.data.urilist_local;
+	} else {
+	    let urilist = GH_FIELDINDEX.data.urilist_www;
+	}
 	var idx = Math.floor(Math.random() * urilist.length);
 	return urilist[idx] + file;
     } else {
@@ -105,6 +109,7 @@ function ghGetResourceUri(file) {
 
 const GH_BASE_CLOCK = new Date().toString();
 var GH_CLOCK_INIT_TIMER = null;
+var GH_CLOCK_UNIT_SCALE = 1.0; //  from arg param
 
 //////////////////////////////////////////
 
@@ -1202,11 +1207,11 @@ function ghSetCesiumMultiplier( val ) {
     if ( isNaN(val) ) return;
     let v = parseFloat(val);
     if ( v < -1 ) {
-	v = -1 / v;
+	v = -1 / ( v * GH_CLOCK_UNIT_SCALE );
     } else if ( v < 1 ) {
 	v = 1;
     } else {
-	// NOP v = v;
+	v = v * GH_CLOCK_UNIT_SCALE ;
     }
     GH_V.clock.multiplier = v;
     //GH_V.clock.multiplier = parseFloat(val);
@@ -3706,6 +3711,9 @@ function ghGetHtmlArgument(type) {
             if ( y[0] == "bp" && type == "bp" ) {
                 ret = y[1];
             }
+            if ( y[0] == "us" && type == "us" ) {
+                ret = y[1];
+            }
         }
     }
     return ret;
@@ -4236,11 +4244,16 @@ function ghLoadFieldIndex() {
 
 function ghBroadcastPrimaryReceiveMessage(data) {
     if (data.type == 'INITCONNECTION') {
+	if ( GH_LOCAL_CONSOLE ) {
+	    let urilist = GH_FIELDINDEX.data.urilist_local;
+	} else {
+	    let urilist = GH_FIELDINDEX.data.urilist_www;
+	}
 	var initdata = { 
             "yourid": null,
 	    "type" : GH_FIELDINDEX.data.type,
 	    "version" : GH_FIELDINDEX.data.version,
-	    "urilist" : GH_FIELDINDEX.data.urilist,
+	    "urilist" : urilist,
 	    "args" : GH_FIELDINDEX.args,
 	    "lineid" : $("input[name='timetableline']:checked").val(),
 	    "name" : GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].name,
@@ -4295,13 +4308,21 @@ if(window.BroadcastChannel){
 //
 /////////////////////////////
 
+if ( location.hostname.match(/^192/) ) {
+    const GH_LOCAL_CONSOLE = true;
+} else {
+    const GH_LOCAL_CONSOLE = false;
+}
+
 function ghInitHtmlArgument() {
     //  gt = Google 3D tile ( photorealistic 3D tile )
     //       default false
     //  bp = Bump Angle
     //       default 7 ( deg )
     //
-    let url = location.hostname;
+    //  us = Cesium Clock Multiplier 
+    //       default 1.0
+    //
     let arg = ghGetHtmlArgument('gt');
     if ( arg == "nop" ) {
 	// NOP
@@ -4309,7 +4330,7 @@ function ghInitHtmlArgument() {
 	///////////////////////////////////////////////
 	///  Only Localhost 
 	///
-	if ( url.match(/^192/) ) {
+	if ( GH_LOCAL_CONSOLE ) {
 	    GH_PHOTOREALISTIC_3DTILE = true;
 	    Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
 	    console.log('use Google Photorealistic 3D tile');
@@ -4325,6 +4346,19 @@ function ghInitHtmlArgument() {
 	    console.log('use Bump Angle ' + b + ' degree');
 	}
     }
+
+    arg = ghGetHtmlArgument('us');
+    if ( arg == "nop" ) {
+	// NOP
+    } else {
+	if ( isNaN(arg) ) {
+	    // NOP
+	} else {
+	    GH_CLOCK_UNIT_SCALE = Math.abs(parseFloat(arg));
+	    console.log('Cesium Clock Multiplier unit scale ' + GH_CLOCK_UNIT_SCALE + ' times');
+	}
+    }
+
 }
 
 
