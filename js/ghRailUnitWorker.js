@@ -55,7 +55,8 @@ var GH_LINES = {};
 var GH_UNIT_GEOM = {};
 function ghGetResourceUri(file) {
     if ( GH_FIELDINDEX.data ) {
-	var urilist = GH_FIELDINDEX.data.urilist;
+	//var urilist = GH_FIELDINDEX.data.urilist;
+	let urilist = GH_FIELDINDEX.urilist;
 	var idx = Math.floor(Math.random() * urilist.length);
 	return urilist[idx] + file;
     } else {

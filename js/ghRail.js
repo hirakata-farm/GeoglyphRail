@@ -20,6 +20,7 @@
 
 var GH_REV = 'Revision 6.7';
 const GH_DEBUG_CONSOLE = false;
+var GH_LOCAL_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
 
 // Your access token can be found at: https://cesium.com/ion/tokens.
@@ -91,17 +92,13 @@ var GH_LOCOMOTIVE = {};
 var GH_FIELDINDEX = {
     'file': 'fieldindex.json',
     'args' : null,
+    'urilist' : [],
     'data' : null
 }
 function ghGetResourceUri(file) {
     if ( GH_FIELDINDEX.data ) {
-	if ( GH_LOCAL_CONSOLE ) {
-	    let urilist = GH_FIELDINDEX.data.urilist_local;
-	} else {
-	    let urilist = GH_FIELDINDEX.data.urilist_www;
-	}
-	var idx = Math.floor(Math.random() * urilist.length);
-	return urilist[idx] + file;
+	var idx = Math.floor(Math.random() * GH_FIELDINDEX.urilist.length);
+	return GH_FIELDINDEX.urilist[idx] + file;
     } else {
 	return file;
     }
@@ -4203,6 +4200,12 @@ function ghLoadFieldIndex() {
 	//
 	GH_FIELDINDEX.data = res;
 	GH_FIELDINDEX.args = ghGetHtmlArgument("tc");
+	if ( GH_LOCAL_CONSOLE ) {
+	    GH_FIELDINDEX.urilist = GH_FIELDINDEX.data.urilist_local;
+	} else {
+	    GH_FIELDINDEX.urilist = GH_FIELDINDEX.data.urilist_www;
+	}
+	
 	if ( GH_FIELDINDEX.args == "nop" ) {
 	    $('#ghstartmodal').modal('open');
 	} else {
@@ -4248,16 +4251,11 @@ function ghLoadFieldIndex() {
 
 function ghBroadcastPrimaryReceiveMessage(data) {
     if (data.type == 'INITCONNECTION') {
-	if ( GH_LOCAL_CONSOLE ) {
-	    let urilist = GH_FIELDINDEX.data.urilist_local;
-	} else {
-	    let urilist = GH_FIELDINDEX.data.urilist_www;
-	}
 	var initdata = { 
             "yourid": null,
 	    "type" : GH_FIELDINDEX.data.type,
 	    "version" : GH_FIELDINDEX.data.version,
-	    "urilist" : urilist,
+	    "urilist" : GH_FIELDINDEX.urilist,
 	    "args" : GH_FIELDINDEX.args,
 	    "lineid" : $("input[name='timetableline']:checked").val(),
 	    "name" : GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].name,
@@ -4313,9 +4311,10 @@ if(window.BroadcastChannel){
 /////////////////////////////
 
 if ( location.hostname.match(/^192/) ) {
-    const GH_LOCAL_CONSOLE = true;
+    GH_LOCAL_CONSOLE = true;
+    console.log("use Local console mode.");
 } else {
-    const GH_LOCAL_CONSOLE = false;
+    GH_LOCAL_CONSOLE = false;
 }
 
 function ghInitHtmlArgument() {
