@@ -1294,6 +1294,7 @@ function ghCreateUnitLineProperty(key) {
 		}
 	    } else if ( prop_p.tunnel && ! prop_n.tunnel ) {
 		// end Tunnel
+		points.push([ geom[i][2] , geom[i][1] ]);
 		if ( points.length > 1 ) {
 		    exit_pos = [ geom[i][2] , geom[i][1], geom[i][3] ];
 		    linestring = turf.helpers.lineString(points,{ name : 'tunnel' } );
@@ -1317,6 +1318,8 @@ function ghCreateUnitLineProperty(key) {
 			'exitpos' : exit_pos,
 			'length' : turf.length.default(linestring,{units:'meters'})
 		    } );
+		} else {
+		    // NOP
 		}
 		points = [];
 		ent_pos = [];		
@@ -1332,6 +1335,7 @@ function ghCreateUnitLineProperty(key) {
 		}
 	    } else if ( prop_p.bridge && ! prop_n.bridge ) {
 		// end Bridge
+		points.push([ geom[i][2] , geom[i][1] ]);
 		if ( points.length > 1 ) {
 		    exit_pos =  [ geom[i][2] , geom[i][1], geom[i][3] ];
 		    linestring = turf.helpers.lineString(points,{ name : 'bridge' } );
@@ -1347,6 +1351,8 @@ function ghCreateUnitLineProperty(key) {
 			'exitpos' : exit_pos,
 			'length' : turf.length.default(linestring,{units:'meters'})
 		    } );
+		} else {
+		    // NOP
 		}
 		points = [];
 		ent_pos = [];

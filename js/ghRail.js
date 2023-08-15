@@ -64,8 +64,8 @@ var GH_TZ_OFFSET_MINUTES = 0; // minutes
 var GH_USE_TUNNEL = false;
 const GH_SET_POSITION_TO_LINESTRING = 8.0; // [m]
 const GH_DISTANCE_TO_LINESTRING = 1.0; // [m]
-const GH_TUNNEL_DEPTH = 10; // [m] under terrain default depth
-const GH_TUNNEL_EDGE_METER = 30; // [m] 
+const GH_TUNNEL_EDGE_METER = 32; // [m] 
+const GH_TUNNEL_DEPTH = 12; // [m] under terrain default depth
 
 //var GH_IS_RECIPROCAL = false; // Speed slower The reciprocal of 5 is 1/5
 
@@ -129,6 +129,7 @@ const GH_UNIT_TARGET_DISTANCE = 200; // unit [m] for extend train length target
 const GH_UNIT_RENDERING_DISTANCE_SQUARED = 4500*4500;
 const GH_UNIT_TARGET_DISTANCE_S = GH_UNIT_TARGET_DISTANCE * 1.9;
 const GH_UNIT_TARGET_DISTANCE_L = GH_UNIT_TARGET_DISTANCE * 2.1;
+
 var GH_UNIT_HEIGHT = {}
 const GH_UNIT_TARGET_DISTANCE_SQUARED = GH_UNIT_TARGET_DISTANCE * GH_UNIT_TARGET_DISTANCE;
 var GH_UNIT_HEIGHT_SIN = Math.sin( 4 * Math.PI / 180 ) ; //  4 deg
@@ -2421,58 +2422,139 @@ function ghUnMapTrainMarker(id){
 //}
 function __ghClampTerrainCartesian(trainid,cartesian) {
     let mposc = GH_V.scene.globe.ellipsoid.cartesianToCartographic(cartesian);
-    let height = __ghGetTerrainHeight(trainid,mposc,null);
+    let height = __ghGetTerrainHeight(trainid,mposc);
     mposc.height = height;
     return Cesium.Cartographic.toCartesian(mposc);
 }
 
-function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
+function __ghGetTerrainHeight(trainid,cartopos) {
     // cartopos = Cesium.Cartographic(longitude,latitude,height);
     //
     //GH_V.scene.globe.getHeight(current_carto)
-    let h = 0;
+    let height_org = 0;
     if ( GH_PHOTOREALISTIC_3DTILE ) {
-	h = __sampleHeightsPhotorealisticGoogle3D(cartopos);
+	height_org = __sampleHeightsPhotorealisticGoogle3D(cartopos);
     } else {
-	h = GH_S.globe.getHeight(cartopos);
+	height_org = GH_S.globe.getHeight(cartopos);
     }
+    
+    if ( GH_USE_TUNNEL ) {
+	let lineprop = GH_UNIT_GEOM[trainid].lineprop;
+	//GH_UNIT_GEOM[key].lineprop = [
+	//    'linestring' ( geojson linestring )
+	//    'level'
+	//    'startpos'  [ lon , lat , alt  ]
+	//    'exitos'  [ lon , lat , alt  ]
+	//    'length'
+        //  ]
+	//
+	let point = turf.helpers.point( [ Cesium.Math.toDegrees(cartopos.longitude), Cesium.Math.toDegrees(cartopos.latitude) ] );
+	let propid = -1;
+	let distance = 0;
+	for (var i = 0,ilen=lineprop.length; i < ilen ; i++) {
+	    distance = turf.pointToLineDistance.default( point, lineprop[i].linestring, {units: 'meters'});
+	    if ( distance < GH_DISTANCE_TO_LINESTRING ) {
+		propid = i;
+		break;
+	    } else {
+		//if ( distance < GH_SET_POSITION_TO_LINESTRING ) {
+		//    if ( lineprop[i].startpos ) {
+		//	lineprop[i].startpos[2] = h;
+		//    }
+		//}
+		// NOP
+	    }
+	}
+	if ( propid < 0 ) {
+	    return height_org;
+	} else {
+	    if ( lineprop[propid].level < 0 ) {
+		// Tunnel
+		let startp = turf.helpers.point( [ lineprop[propid].startpos[0], lineprop[propid].startpos[1] ] );
+		let exitp = turf.helpers.point( [ lineprop[propid].exitpos[0], lineprop[propid].exitpos[1] ] );
+		let startdis = turf.distance.default(point,startp ,{units: 'meters'});
+		let exitdis = turf.distance.default(point,exitp ,{units: 'meters'});
+		let depth = GH_TUNNEL_DEPTH;
+
+		if ( startdis < GH_TUNNEL_EDGE_METER ) {
+		    let startcart = new Cesium.Cartographic.fromDegrees([ lineprop[propid].startpos[0], lineprop[propid].startpos[1] ] );
+		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+			return __sampleHeightsPhotorealisticGoogle3D(startcart);
+		    } else {
+			return GH_S.globe.getHeight(startcart);
+		    }
+		} else if ( exitdis < GH_TUNNEL_EDGE_METER ) {
+		    let exitcart = new Cesium.Cartographic.fromDegrees([ lineprop[propid].exitpos[0], lineprop[propid].exitpos[1] ] );
+		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+			return __sampleHeightsPhotorealisticGoogle3D(exitcart);
+		    } else {
+			return GH_S.globe.getHeight(exitcart);
+		    }
+		} else {
+		    // NOP  default depth
+		    return height_org - depth;
+		}
+	    } else {
+		//if ( lineprop[propid].level > 0 )
+		// Viaduct Bridge
+		return height_org;
+	    }
+	}
+    } else {
+	return height_org;
+    }
+}
+
+function __ghGetTerrainHeightSample(trainid,cartopos,prevcheckid) {
+    // cartopos = Cesium.Cartographic(longitude,latitude,height);
+    //
+    //GH_V.scene.globe.getHeight(current_carto)
+    let height_org = 0;
+    if ( GH_PHOTOREALISTIC_3DTILE ) {
+	height_org = __sampleHeightsPhotorealisticGoogle3D(cartopos);
+    } else {
+	height_org = GH_S.globe.getHeight(cartopos);
+    }
+    let height_adj = height_org;
+    
     ///////////////////////
     if ( prevcheckid != null ) {
-	if ( h != 0 ) cartopos.height = h;
+	//if ( h != 0 ) cartopos.height = h;
+	cartopos.height = height_org;
 	let cartesian = Cesium.Cartographic.toCartesian(cartopos);
 	let tid = trainid + prevcheckid;
 	if ( GH_UNIT_HEIGHT[tid] ) {
 	    let d = Cesium.Cartesian3.distanceSquared(cartesian, GH_UNIT_HEIGHT[tid].cartesian);
 	    if ( d < GH_UNIT_TARGET_DISTANCE_SQUARED ) {
-		let slope = h - GH_UNIT_HEIGHT[tid].height ;
+		let slope = height_org - GH_UNIT_HEIGHT[tid].height ;
 		if ( slope > 0 ) {
 		    // Uphill
 		    if ( slope > Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
-			h = GH_UNIT_HEIGHT[tid].height;
+			height_adj = GH_UNIT_HEIGHT[tid].height;
 		    } else {
 			GH_UNIT_HEIGHT[tid].cartesian = cartesian;
-			GH_UNIT_HEIGHT[tid].height = h;
+			GH_UNIT_HEIGHT[tid].height = height_org;
 		    }
 		    GH_UNIT_HEIGHT[tid].type = 'up';
 		} else {
 		    // Downhill
 		    if ( slope < -1*Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
 			let ratio = Math.sqrt(d) / GH_UNIT_TARGET_DISTANCE;
-			h = ratio * slope + GH_UNIT_HEIGHT[tid].height;
+			height_adj = ratio * slope + GH_UNIT_HEIGHT[tid].height;
 		    } else {
 			GH_UNIT_HEIGHT[tid].cartesian = cartesian;
-			GH_UNIT_HEIGHT[tid].height = h;
+			GH_UNIT_HEIGHT[tid].height = height_org;
 		    }
 		    GH_UNIT_HEIGHT[tid].type = 'down';		    
 		}
 	    } else {
 		GH_UNIT_HEIGHT[tid].cartesian = cartesian;
-		GH_UNIT_HEIGHT[tid].height = h;
+		GH_UNIT_HEIGHT[tid].height = height_org;
 	    }
 	} else {
 	    GH_UNIT_HEIGHT[tid] = {
 		'cartesian' : cartesian,
-		'height' : h,
+		'height' : height_org,
 		'type' : null
 	    }
 	}
@@ -2490,53 +2572,65 @@ function __ghGetTerrainHeight(trainid,cartopos,prevcheckid) {
         //  ]
 	//
 	let point = turf.helpers.point( [ Cesium.Math.toDegrees(cartopos.longitude), Cesium.Math.toDegrees(cartopos.latitude) ] );
-	let checkid = -1;
+	let propid = -1;
 	let distance = 0;
 	for (var i = 0,ilen=lineprop.length; i < ilen ; i++) {
 	    distance = turf.pointToLineDistance.default( point, lineprop[i].linestring, {units: 'meters'});
 	    if ( distance < GH_DISTANCE_TO_LINESTRING ) {
-		checkid = i;
+		propid = i;
 		break;
 	    } else {
-		if ( distance < GH_SET_POSITION_TO_LINESTRING ) {
-		    if ( lineprop[i].startpos ) {
-			lineprop[i].startpos[2] = h;
-		    }
-		}
+		//if ( distance < GH_SET_POSITION_TO_LINESTRING ) {
+		//    if ( lineprop[i].startpos ) {
+		//	lineprop[i].startpos[2] = h;
+		//    }
+		//}
 		// NOP
 	    }
 	}
-	if ( checkid < 0 ) {
-	    return h;
+	if ( propid < 0 ) {
+	    return height_adj;
 	} else {
-	    if ( lineprop[checkid].level < 0 ) {
+	    if ( lineprop[propid].level < 0 ) {
 		// Tunnel
-		let startp = turf.helpers.point( [ lineprop[checkid].startpos[0], lineprop[checkid].startpos[1] ] );
-		let exitp = turf.helpers.point( [ lineprop[checkid].exitpos[0], lineprop[checkid].exitpos[1] ] );
+		let startp = turf.helpers.point( [ lineprop[propid].startpos[0], lineprop[propid].startpos[1] ] );
+		let exitp = turf.helpers.point( [ lineprop[propid].exitpos[0], lineprop[propid].exitpos[1] ] );
 		let startdis = turf.distance.default(point,startp ,{units: 'meters'});
 		let exitdis = turf.distance.default(point,exitp ,{units: 'meters'});
 		let depth = GH_TUNNEL_DEPTH;
+
 		if ( startdis < GH_TUNNEL_EDGE_METER ) {
-		    //depth = 0.5 * startdis;
-		    if ( h > lineprop[checkid].startpos[2] ) {
-			depth = h - lineprop[checkid].startpos[2];
-		    } else {
-			depth = 0.0699 * startdis; // tan 4 deg
-		    }
+		    return height_adj;
 		} else if ( exitdis < GH_TUNNEL_EDGE_METER ) {
-		    depth = 0.0699 * exitdis; // tan 4 deg
+		    return height_adj;
 		} else {
-		    // NOP  default depht
+		    // NOP  default depth
+		    return height_org - depth;
 		}
-		return h - depth;
+
+
+//		if ( startdis < GH_TUNNEL_EDGE_METER ) {
+//		    //depth = 0.5 * startdis;
+//		    if ( h > lineprop[propid].startpos[2] ) {
+//			depth = h - lineprop[propid].startpos[2];
+//		    } else {
+//			//  depth = 0.0699 * startdis; // tan 4 deg
+//		    }
+//		} else if ( exitdis < GH_TUNNEL_EDGE_METER ) {
+//		    //  depth = 0.0699 * exitdis; // tan 4 deg
+//		} else {
+//		    // NOP  default depth
+//		}
+//		return h - depth;
+		
 	    } else {
-		//if ( lineprop[checkid].level > 0 )
+		//if ( lineprop[propid].level > 0 )
 		// Viaduct Bridge
-		return h;
+		return height_adj;
 	    }
 	}
     } else {
-	return h;
+	return height_adj;
     }
 }
 
@@ -2550,7 +2644,7 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 
 	let tailp = turf.helpers.point( [ Cesium.Math.toDegrees(tposc.longitude), Cesium.Math.toDegrees(tposc.latitude)  ] );
 	let headp = turf.helpers.point( [ Cesium.Math.toDegrees(hposc.longitude) , Cesium.Math.toDegrees(hposc.latitude) ] );   
-	var height = __ghGetTerrainHeight(trainid,tposc,null);
+	var height = __ghGetTerrainHeight(trainid,tposc);
 
 	var circle = turf.circle.default(tailp,distance,{steps:32,units:'meters'});
 	var crosspoint = turf.lineIntersect.default(GH_UNIT_GEOM[trainid].line, circle) ;
@@ -2559,7 +2653,7 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 	} else if ( crosspoint.features.length < 2 ) {
 	    //  Wrong data ?? console.log('Wrong intersect ' + trainid + ' ' + distance );
 	    let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[0].geometry.coordinates[0], crosspoint.features[0].geometry.coordinates[1] ,height);
-            ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
+            ncart.height = __ghGetTerrainHeight(trainid,ncart);
 	    return Cesium.Cartographic.toCartesian(ncart);
 	} else if (  crosspoint.features.length < 3 ) {
 	    let d0 = turf.distance.default(crosspoint.features[0], headp ,{units: 'meters'});
@@ -2567,13 +2661,13 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 	    if ( d1 > d0 ) {
 		//  Select d0 point
 		let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[0].geometry.coordinates[0], crosspoint.features[0].geometry.coordinates[1] ,height);
-		ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
+		ncart.height = __ghGetTerrainHeight(trainid,ncart);
 		return Cesium.Cartographic.toCartesian(ncart);
 		//return new Cesium.Cartesian3.fromDegrees( crosspoint.features[0].geometry.coordinates[0], crosspoint.features[0].geometry.coordinates[1] ,height );
             } else {
 		//  Select d1 point
 		let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[1].geometry.coordinates[0], crosspoint.features[1].geometry.coordinates[1] ,height);
-		ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
+		ncart.height = __ghGetTerrainHeight(trainid,ncart);
 		return Cesium.Cartographic.toCartesian(ncart);
 		//return new Cesium.Cartesian3.fromDegrees( crosspoint.features[1].geometry.coordinates[0], crosspoint.features[1].geometry.coordinates[1] ,height );
 	    }
@@ -2589,7 +2683,7 @@ function __ghGetCartesianPositionLinestringDistance(trainid,tposc,hposc,distance
 		}
 	    }
 	    let ncart = new Cesium.Cartographic.fromDegrees(crosspoint.features[di].geometry.coordinates[0], crosspoint.features[di].geometry.coordinates[1] ,height);
-	    ncart.height = __ghGetTerrainHeight(trainid,ncart,null);
+	    ncart.height = __ghGetTerrainHeight(trainid,ncart);
 	    return Cesium.Cartographic.toCartesian(ncart);
 	    //return new Cesium.Cartesian3.fromDegrees( crosspoint.features[di].geometry.coordinates[0], crosspoint.features[di].geometry.coordinates[1] ,height );
 	}
@@ -2649,7 +2743,86 @@ function ghUpdateUnitData(trainid,ct,headentity,tailentity) {
     
 }
 
-function __ghGetCartesianPositionLinestringSlice(trainid,linestring,distance,checkid) {
+function __ghGetCartesianPositionLinestringSlice(trainid,linestring,distance,tail,head,cid) {
+    // tail  = target tail position Cesium.Cartograpic
+    // head  = target head position Cesium.Cartograpic    
+    let coachid = trainid + cid;
+
+    let cp = turf.invariant.getCoords( turf.lineSliceAlong.default(linestring,0,distance,{units: 'meters'}) );
+    let coachpos = new Cesium.Cartographic.fromDegrees(cp[cp.length-1][0] ,cp[ cp.length-1][1]);
+    let height_coach = __ghGetTerrainHeight(trainid,coachpos);
+
+    if ( GH_USE_TUNNEL ) {
+    
+	let cartesian = Cesium.Cartographic.toCartesian(coachpos);
+	let slope = 0;
+	if ( GH_UNIT_HEIGHT[coachid] ) {
+	    let d = Cesium.Cartesian3.distanceSquared(cartesian, GH_UNIT_HEIGHT[coachid].cartesian);
+	    if ( d < GH_UNIT_TARGET_DISTANCE_SQUARED ) {
+		//slope = coachpos.height - GH_UNIT_HEIGHT[coachid].height ;
+		slope = height_coach - GH_UNIT_HEIGHT[coachid].height ;
+		if ( slope > 0 ) {
+		    // Uphill
+		    if ( slope > Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
+			//height_coach = GH_UNIT_HEIGHT[coachid].height;
+			GH_UNIT_HEIGHT[coachid].type = 'upover';
+		    } else {
+			GH_UNIT_HEIGHT[coachid].cartesian = cartesian;
+			GH_UNIT_HEIGHT[coachid].height = height_coach;
+			GH_UNIT_HEIGHT[coachid].type = 'up';
+		    }
+		} else {
+		    // Downhill
+		    if ( slope < -1*Math.sqrt(d) * GH_UNIT_HEIGHT_SIN ) {
+			//let ratio = Math.sqrt(d) / GH_UNIT_TARGET_DISTANCE;
+			//height_coach = ratio * slope + GH_UNIT_HEIGHT[coachid].height;
+			GH_UNIT_HEIGHT[coachid].type = 'downover';
+		    } else {
+			GH_UNIT_HEIGHT[coachid].cartesian = cartesian;
+			GH_UNIT_HEIGHT[coachid].height = height_coach;
+			GH_UNIT_HEIGHT[coachid].type = 'down';		    
+		    }
+		}
+	    } else {
+		GH_UNIT_HEIGHT[coachid].cartesian = cartesian;
+		GH_UNIT_HEIGHT[coachid].height = height_coach;
+		GH_UNIT_HEIGHT[coachid].type = 'far';		    
+	    }
+	} else {
+	    GH_UNIT_HEIGHT[coachid] = {
+		'cartesian' : cartesian,
+		'height' : height_coach,
+		'type' : 'none'
+	    }
+	}
+	
+	if ( GH_UNIT_HEIGHT[coachid].type == 'upover' ) {
+	    coachpos.height = GH_UNIT_HEIGHT[coachid].height;
+	} else if ( GH_UNIT_HEIGHT[coachid].type == 'downover' ) {
+	    let height_head = __ghGetTerrainHeight(trainid,head);
+	    let threshold = ( height_coach + GH_UNIT_HEIGHT[coachid].height ) / 2;
+	    //let data = 'head ' + height_head + ' coach ' + height_coach + ' prev ' + GH_UNIT_HEIGHT[coachid].height + '  thresh ' + threshold;
+	    //console.log(data);
+	    if ( height_head < threshold ) {
+		coachpos.height = height_coach;
+	    } else {
+		coachpos.height = GH_UNIT_HEIGHT[coachid].height;
+	    }
+	} else {
+	    coachpos.height = height_coach;
+	}
+	
+    } else  {
+	//  Cannot use Tunnel
+	// Clamp to terrain value
+	coachpos.height = height_coach;
+    }
+
+    // return cartesian
+    return Cesium.Cartographic.toCartesian(coachpos);
+    
+}
+function __ghGetCartesianPositionLinestringSliceSample(trainid,linestring,distance,checkid) {
     let cp = turf.invariant.getCoords( turf.lineSliceAlong.default(linestring,0,distance,{units: 'meters'}) );
     let cart = new Cesium.Cartographic.fromDegrees(cp[cp.length-1][0] ,cp[ cp.length-1][1]);
     cart.height = __ghGetTerrainHeight(trainid,cart,checkid);
@@ -2689,11 +2862,11 @@ function ghReCreateLineStringDetailLongs(coords,startcoord,stopcoord) {
 }
 
 function ghUpdateUnitCoachSlice(trainid,locomotive,tailpos,headpos) {
-    // tposc  = target tail Cesium.Cartograpic
-    // hposc  = target head Cesium.Cartograpic
+    // tposc  = target tail position Cesium.Cartograpic
+    // hposc  = target head head Cesium.Cartograpic
     
-    // tailpos  = target tail Cesium.Cartesian3
-    // headpos  = target head Cesium.Cartesian3
+    // tailpos  = target tail position Cesium.Cartesian3
+    // headpos  = target head position Cesium.Cartesian3
     
     let model = locomotive.data.model;
     let modellen = model.length;
@@ -2707,7 +2880,10 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tailpos,headpos) {
     let sliced = turf.lineSlice.default(start,stop, GH_UNIT_GEOM[trainid].line);
     let slicedcoords = turf.invariant.getCoords( sliced ) ;
     let slicedlength = turf.length.default(sliced,{units:'meters'});
-    const checkdistance = 2;
+
+    /////////////////////
+    const checkdistance = 6;  ///    Sometimes , needs to adjust value
+    /////////////////////
     let cdis = turf.distance.default(slicedcoords[0],start, {units: 'meters'});
     if ( slicedlength < GH_UNIT_TARGET_DISTANCE_S ) {
 	// Wrong Slice No Rendering
@@ -2729,11 +2905,11 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tailpos,headpos) {
 	}
     }
 
-    let nextpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[0],99);
+    let nextpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[0],tposc,hposc,99);
     let prevvel = Cesium.Cartesian3.ONE;
     for (var i = 0; i < modellen ; i++) {
 	let entity = GH_V.entities.getById( __ghGetCoachEntityKey(trainid,i) );
-	let currentpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[i+1],i);
+	let currentpos = __ghGetCartesianPositionLinestringSlice(trainid,sliced,locomotive.position[i+1],tposc,hposc,i);
 
 	//////////////////////////////  Normalized Error work around //////////////////////////////
 	let surf = new Cesium.Cartesian3();
@@ -2974,6 +3150,9 @@ function ghUpdateCesiumScene(scene,currenttime) {
 }
 
 /////////////////////////////////////////////////////////////
+//
+//  Unused
+//
 function ghCheckMemoryDeprecated(ct) {
     //https://developer.mozilla.org/en-US/docs/Web/API/Performance/memory    
     
