@@ -18,32 +18,25 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.7';
+var GH_REV = 'Revision 6.8';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
 
-// Your access token can be found at: https://cesium.com/ion/tokens.
-Cesium.Ion.defaultAccessToken = '___CESIUM_TOKEN___';
-
 // https://github.com/CesiumGS/cesium/issues/8959
 //Cesium.ModelOutlineLoader.hasExtension = function() { return false; }
 
-var GH_MEMORY = {
-    'upperlimit' : 0.85,
-    'lowerlimit' : 0.75,
-    'prev3dtile' : false,
-    'prevcache' : -1,
-    'prevused' : 0
-}
+//var GH_MEMORY = {
+//    'upperlimit' : 0.85,
+//    'lowerlimit' : 0.75,
+//    'prev3dtile' : false,
+//    'prevcache' : -1,
+//    'prevused' : 0
+//}
     
 //////////////////////////////////
 var GH_SPEED_METER = null;
-var GH_SPEED_METER_PROP = {
-    value : 0,
-    prevpos : new Cesium.Cartesian3(0,0,0),
-    prevtime : new Cesium.JulianDate()
-};  //   value = [ Meter / sec]
+var GH_SPEED_METER_PROP = null;
 var GH_SPEED_CALC_PARAM = ( 60 * 60 * 0.84  ) /  1000;
 //  speedometer unit [m/s] -> [Km/h] ,, 0.84 is adjust paramtter
 
@@ -239,6 +232,15 @@ function ghSetTimezoneOffset(timestr) {
 var GH_PRIMITIVE_ID = [];
 
 var GH_TRAIN_LABEL_Y_OFFSET = 20;
+
+///////////////////////////////
+//  Check Local Console
+if ( location.hostname.match(/^192/) ) {
+    GH_LOCAL_CONSOLE = true;
+    console.log("use Local console mode.");
+} else {
+    GH_LOCAL_CONSOLE = false;
+}
 
     
 ////////////////////////////////////////
@@ -637,6 +639,11 @@ function ghInitInputForm() {
 }
 
 function ghInitSpeedoMeter() {
+    GH_SPEED_METER_PROP = {
+	value : 0,
+	prevpos : new Cesium.Cartesian3(0,0,0),
+	prevtime : new Cesium.JulianDate()
+    };  //   value = [ Meter / sec]
     
     GH_SPEED_METER = $("#ghspeedometer").ghSpeedoMeter({
         divFact:10,
@@ -4476,26 +4483,23 @@ function ghBroadcastPrimaryReceiveMessage(data) {
 	}
     }
 }
-////////////
-if(window.BroadcastChannel){
-    ghBroadcastSetup('primary',ghBroadcastPrimaryReceiveMessage);
-} else {
-    console.log("Broadcast Channel Not Supported. \nThis application does not work your browser.");
-    alert(GH_ERROR_MSG['broadcastnotsupport']);
+
+function ghCheckBroadcastAPI() {
+    if(window.BroadcastChannel){
+	ghBroadcastSetup('primary',ghBroadcastPrimaryReceiveMessage);
+    } else {
+	//  Hide timetable Button
+	$("#ghtimetablebtn").hide();
+	//console.log("Broadcast Channel Not Supported. \nThis application does not work your browser.");
+	console.log("Broadcast Channel Not Supported. ");
+	//alert(GH_ERROR_MSG['broadcastnotsupport']);
+    }
 }
 
 //
 //  Broadcast Channel Function
 //
 /////////////////////////////
-
-if ( location.hostname.match(/^192/) ) {
-    GH_LOCAL_CONSOLE = true;
-    console.log("use Local console mode.");
-} else {
-    GH_LOCAL_CONSOLE = false;
-}
-
 function ghInitHtmlArgument() {
     //  gt = Google 3D tile ( photorealistic 3D tile )
     //       default false
@@ -4545,6 +4549,9 @@ function ghInitHtmlArgument() {
 
 
 $(document).ready(function(){
+
+    // Your access token can be found at: https://cesium.com/ion/tokens.
+    Cesium.Ion.defaultAccessToken = '___CESIUM_TOKEN___';
 
 //    if(typeof jQuery == "undefined"){ //jQuery
 //        console('Cannot load jQuery.. ');
@@ -4596,8 +4603,9 @@ $(document).ready(function(){
 //    $('#gh_startmodal').modal('open');
 //
     //ghAvoidOperation();
+    ghCheckBroadcastAPI();
 
-    
+    ghShowRevisionConsole();    
 });
 
 function __sampleHeightsPhotorealisticGoogle3D(cartographic) {
@@ -4633,7 +4641,9 @@ async function __setupPhotorealisticGoogle3D() {
     }
 }
 
+function ghShowRevisionConsole() {
+    console.log( " Cesium " + Cesium.VERSION + " jQuery " + jQuery.fn.jquery + " leaflet " + L.version );
+}
 
-console.log( " Cesium " + Cesium.VERSION + " jQuery " + jQuery.fn.jquery + " leaflet " + L.version );
 
 
