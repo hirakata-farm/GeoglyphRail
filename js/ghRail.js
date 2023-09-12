@@ -18,7 +18,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.8';
+var GH_REV = 'Revision 6.9';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
@@ -1290,6 +1290,19 @@ function ghEnableCesiumTunnel(flag) {
 	GH_USE_TUNNEL = false;
     }
 }
+async function __osmBuildingsAsync() {
+    if ( GH_SHOW_3DTILE  ) {
+	try {
+	    GH_3DTILE_OSMBUILDING = await Cesium.createOsmBuildingsAsync({
+		showOutline : false
+	    });
+	    GH_V.scene.primitives.add(GH_3DTILE_OSMBUILDING);
+	} catch (error) {
+	    console.log(`Error creating tileset: ${error}`);
+	}
+	    
+    }
+}
 function ghEnableCesium3Dtile(flag){
     if ( GH_V == null ) return;
 
@@ -1302,20 +1315,7 @@ function ghEnableCesium3Dtile(flag){
 
     if ( GH_3DTILE_OSMBUILDING == null ) {
         if ( flag ) {
-	    //GH_3DTILE_OSMBUILDING = Cesium.createOsmBuildings();
-            //GH_3DTILE_OSMBUILDING = Cesium.createOsmBuildings({
-	    //showOutline : false
-	    // });                    
-            //GH_V.scene.primitives.add(GH_3DTILE_OSMBUILDING);
-
-	    try {
-		GH_3DTILE_OSMBUILDING = Cesium.createOsmBuildings({
-		    showOutline : false
-		});
-		GH_V.scene.primitives.add(GH_3DTILE_OSMBUILDING);
-	    } catch (error) {
-		console.log('Error create OSM Buildings : ${error}');
-	    }
+	    __osmBuildingsAsync();
         } else {
             // NOP
         }
@@ -4520,6 +4520,7 @@ function ghInitHtmlArgument() {
 	    GH_PHOTOREALISTIC_3DTILE = true;
 	    Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
 	    console.log('use Google Photorealistic 3D tile');
+	    $("#gh3DProperty3DtileCheckbox").hide();
 	}
     }
     arg = ghGetHtmlArgument('bp');
@@ -4609,8 +4610,13 @@ $(document).ready(function(){
 });
 
 function __sampleHeightsPhotorealisticGoogle3D(cartographic) {
-    let height = GH_S.sampleHeight(cartographic);
-    return height;
+    if ( isNaN(cartographic.longitude) || isNaN(cartographic.latitude)  ) {
+	console.log("__sampleHeightsPhotorealisticGoogle3D NaN");
+	return -100;
+    } else {
+	let height = GH_S.sampleHeight(cartographic);
+	return height;
+    }
 }
 async function __sampleHeightsPhotorealisticGoogle3Dasync(cartographic) {
   const cartesians = new Array(1);
