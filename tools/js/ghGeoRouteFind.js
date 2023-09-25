@@ -725,11 +725,11 @@ async function ghGeometryRoutePreDownload() {
 	    segmentpos.push(cartpos);
 	}
     }
-    var terrain = new Cesium.createWorldTerrain({
-	requestWaterMask: false,
-	requestVertexNormals : false
-    });
-    console.log("Terrain Data OK");
+//    var terrain = new Cesium.createWorldTerrain({
+//	requestWaterMask: false,
+//	requestVertexNormals : false
+//    });
+//    console.log("Terrain Data OK");
     
     // Obsolete
     //    var promise = Cesium.sampleTerrainMostDetailed( terrain, segmentpos );

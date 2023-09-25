@@ -18,7 +18,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.9';
+var GH_REV = 'Revision 6.10';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
@@ -592,7 +592,6 @@ function ghInitInputForm() {
         ////ghChangeLeafletTrainIconSize( $(this).val() );
 	/// NOT YET
 //    });
-
 
     $('input[name="cesiumweather"]:radio').change(function(){
 	var radio = $(this).val();
@@ -2341,8 +2340,27 @@ function ghUpdateStatusbarDatetime(t) {
     let str =  h + ":" + m + ":" + s;
     $('#timedescription').html(str);
 
+    ghCheckStopTimer(gregorianDate);
+    
 }
+function ghCheckStopTimer(gregorian) {
 
+    let status = $('#enablestoptimercheckbox').is(':checked');
+    if ( status ) {
+	let hhh =  $('#stoptimerhour').val();
+	let mmm =  $('#stoptimermin').val();
+	if ( gregorian.hour == hhh && gregorian.minute == mmm ) {
+	    ghStopCesiumScene();
+	    ghStopTitleMarquee();
+	    ghChangePlayPauseButton(false);
+	} else {
+	    // NOP
+	}
+    } else {
+	// NOP
+    }
+
+}
 
 function ghCreateLeafletIcon(type,trainid) {
     // Default Station
@@ -3897,6 +3915,9 @@ function ghGetHtmlArgument(type) {
             if ( y[0] == "us" && type == "us" ) {
                 ret = y[1];
             }
+            if ( y[0] == "tm" && type == "tm" ) {
+                ret = y[1];
+            }
         }
     }
     return ret;
@@ -4391,7 +4412,6 @@ function ghLoadFieldIndex() {
 	} else {
 	    GH_FIELDINDEX.urilist = GH_FIELDINDEX.data.urilist_www;
 	}
-	
 	if ( GH_FIELDINDEX.args == "nop" ) {
 	    $('#ghstartmodal').modal('open');
 	} else {
@@ -4404,6 +4424,15 @@ function ghLoadFieldIndex() {
 	    ghLoadFieldData(ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].file));
 	    
 	}
+
+	let stoptimer = ghGetHtmlArgument("tm");
+	if ( stoptimer == "nop" ) {
+	    $("#ghstoptimerinput").hide();
+	} else {
+	    $("#ghstoptimerinput").show();
+	}
+
+	
 	ghSendCommandUnitWorker('fieldindex',GH_FIELDINDEX);
 	if ( GH_DEBUG_CONSOLE ) console.log( GH_FIELDINDEX );
     }).fail(function(XMLHttpRequest, textStatus,errorThrown){
