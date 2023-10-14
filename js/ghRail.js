@@ -18,7 +18,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.10';
+var GH_REV = 'Revision 6.11';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
@@ -232,6 +232,8 @@ function ghSetTimezoneOffset(timestr) {
 var GH_PRIMITIVE_ID = [];
 
 var GH_TRAIN_LABEL_Y_OFFSET = 20;
+
+var GH_SAVEFILE_JSON = null;
 
 ///////////////////////////////
 //  Check Local Console
@@ -619,7 +621,11 @@ function ghInitInputForm() {
 	ghOnClickViewpointButton( $(this).val() );
     });
 
+    $( '#gh_savedata').click(function(){
+	ghDownloadSaveData();
+    });
 
+    
     ////////  Tooltip for Play Button
     $('.tooltipped').tooltip({
 	position:"top",
@@ -688,7 +694,7 @@ function __ghSetPickEntity(ent) {
 
 }
 
-function ghInitCesiumViewerDefault(domid) {
+function ghInitCesiumViewer(domid) {
 
     GH_V = new Cesium.Viewer(domid,{
 	animation : false,
@@ -708,18 +714,14 @@ function ghInitCesiumViewerDefault(domid) {
 	vrButton: false,
 	terrainShadows : Cesium.ShadowMode.DISABLED,
 	automaticallyTrackDataSourceClocks : true,
-	baseLayer : Cesium.ImageryLayer.fromProviderAsync(
-	    Cesium.ArcGisMapServerImageryProvider.fromBasemapType(
-		Cesium.ArcGisBaseMapType.SATELLITE
-	    )
-	),
 	contextOptions : {
             webgl : {
 		powerPreference: 'high-performance'
             }
 	}
     });
-
+    // GH_V.baseLayer set up at  ghSetGooglePhotorealistic3D(flag)
+    
     GH_TPV[0] = Cesium.Terrain.fromWorldTerrain({
 	requestWaterMask: false,
 	requestVertexNormals: true
@@ -729,9 +731,6 @@ function ghInitCesiumViewerDefault(domid) {
 	requestVertexNormals: true
     });
 
-    GH_V.scene.globe.depthTestAgainstTerrain = true;
-    //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
-    
     //GH_V.resolutionScale = Cesium.Math.clamp(val/100, 0.1, 1.0);
     //GH_V.resolutionScale = 1.0;  //   Default 1.0
     //GH_V.scene.globe.tileCacheSize = 500;  // Default 100
@@ -744,7 +743,10 @@ function ghInitCesiumViewerDefault(domid) {
     GH_C = new Cesium.ClockViewModel(GH_V.clock);
     GH_A = new Cesium.AnimationViewModel(GH_C);
     GH_S = GH_V.scene;
-
+    //GH_S.globe.show = false;  //  at ghSetGooglePhotorealistic3D(flag) 
+    GH_S.globe.depthTestAgainstTerrain = true;
+    //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
+    
     //
     //  Rendering Slow Message
     //
@@ -756,7 +758,7 @@ function ghInitCesiumViewerDefault(domid) {
     // Show tile queue loading
     //
     GH_S.globe.tileLoadProgressEvent.addEventListener(ghTilequeueLoading);
-    GH_S.setTerrain( GH_TPV[0] );
+    //GH_S.setTerrain( GH_TPV[0] );  //  at ghSetGooglePhotorealistic3D(flag) 
 
     ghRenameTimelineLabel();
 
@@ -850,162 +852,7 @@ function ghInitCesiumViewerDefault(domid) {
 	},
 	Cesium.ScreenSpaceEventType.LEFT_UP
     );
-    
-}
-function ghInitCesiumViewerGoogle(domid) {
-    
-    GH_V = new Cesium.Viewer(domid,{
-	animation : false,
-	baseLayerPicker : false,
-	fullscreenButton : false,
-	geocoder : false,
-	homeButton : true,
-	infoBox : false,
-	skyBox : false,
-	sceneModePicker : false,
-	selectionIndicator : true,
-	timeline : true,
-	navigationHelpButton : true,
-	sceneMode : Cesium.SceneMode.SCENE3D,
-	scene3DOnly : true,
-	shadows : false,
-	vrButton: false,
-	terrainShadows : Cesium.ShadowMode.DISABLED,
-	automaticallyTrackDataSourceClocks : true,
-	contextOptions : {
-            webgl : {
-		powerPreference: 'high-performance'
-            }
-	}
-    });
 
-    //GH_V.scene.globe.depthTestAgainstTerrain = true;
-    //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
-    
-    GH_C = new Cesium.ClockViewModel(GH_V.clock);
-    GH_A = new Cesium.AnimationViewModel(GH_C);
-
-//    GH_TPV[0] = Cesium.Terrain.fromWorldTerrain({
-//	requestWaterMask: false,
-//	requestVertexNormals: true
-//    });
-//    GH_TPV[1] = Cesium.Terrain.fromWorldTerrain({
-//	requestWaterMask: true,
-//	requestVertexNormals: true
-//    });
-//
-    GH_S = GH_V.scene;
-    GH_S.globe.show = false;
-    GH_S.globe.depthTestAgainstTerrain = true;
-    //GH_S.setTerrain( GH_TPV[0] );
-    
-    //
-    //  Rendering Slow Message
-    //
-//    GH_V.extend(Cesium.viewerPerformanceWatchdogMixin, {
-//	lowFrameRateMessage : GH_WARN_MSG['tooslow']
-//    }); 
-
-    //
-    // Show tile queue loading
-    //
-    //GH_V.scene.globe.tileLoadProgressEvent.addEventListener(ghTilequeueLoading);
-    __setupPhotorealisticGoogle3D();
-    
-    ghRenameTimelineLabel();
-
-    
-    //
-    // Timeline observe	 Ad-Hook
-    //
-    Cesium.knockout.getObservable(GH_C, 'shouldAnimate').subscribe(function(value) {
-	// false when the clock is paused.
-	if ( !value ) {
-	    // Playing and Click Timeline -> stop 
-	    ghStopCesiumScene();
-	    ghStopTitleMarquee();
-	    //ghChangePlayPauseButton(GH_IS_PLAYING);
-	    ghChangePlayPauseButton(false);
-	    ghUpdateStatusbarDatetime(null);
-	} else {
-	    // Stopping -> Click Play button
-	    // NOP
-	}
-    });
-
-    //
-    // Cesium Screen Mouse Click
-    //
-    var act = new Cesium.ScreenSpaceEventHandler(GH_V.scene.canvas);
-    act.setInputAction(
-	function (evt) {
-            var pick = GH_V.scene.pick(evt.position);
-	    if ( Cesium.defined(pick) && Cesium.defined(pick.id) ) {
-		if ( Cesium.defined(pick.id.position) ) {
-		    __ghSetPickEntity(pick.id);
-		    
-		    //console.log(pick.id);
-		    // pick.id is Entity Object , Not id text
-		    // ^^^^^^^^^^^^^^^^^
-		    //console.log( "PICK " + pick.id ); // Object
-		    //console.log( "PICK " + pick.id.id );  10ES_S_9020_c_2 ...
-
-		}
-            }
-	},
-	Cesium.ScreenSpaceEventType.LEFT_CLICK
-    );
-
-    act.setInputAction(
-	function (evt) {
-	    // wheel up evt return 120
-	    // wheel down evt return -120
-	    let val = parseFloat(evt/GH_MOUSE_WHEEL_UNIT);
-	    GH_CAM_DISTANCE = GH_CAM_DISTANCE + val;
-	    if ( GH_CAM_DISTANCE < GH_CAM_DISTANCE_MIN ) GH_CAM_DISTANCE = GH_CAM_DISTANCE_MIN;
-	},
-	Cesium.ScreenSpaceEventType.WHEEL
-    );
-
-    // https://groups.google.com/g/cesium-dev/c/DTJ6TEN04U8
-    act.setInputAction(
-	function(click) {
-	    if ( GH_CAM_MODE == GH_CAM_MODE_NONE
-		 || GH_CAM_MODE == GH_CAM_MODE_TRACKED
-		 || GH_CAM_MODE == GH_CAM_MODE_ABOVE ) {
-		// NOP
-	    } else {
-		GH_IS_DRAGGING = true;
-		GH_V.scene.screenSpaceCameraController.enableRotate = false;
-		Cesium.Cartesian2.clone(click.position, GH_MOUSE_POSITION);
-		//entity.position = mousePositionProperty;
-	    }
-        },
-	Cesium.ScreenSpaceEventType.LEFT_DOWN
-    );
-
-    act.setInputAction(
-	function(movement) {
-            if (GH_IS_DRAGGING) {
-		let currentpos = {};
-		Cesium.Cartesian2.clone(movement.endPosition, currentpos);
-		let val = parseFloat((currentpos.y-GH_MOUSE_POSITION.y)/GH_MOUSE_DRAG_UNIT);
-		GH_CAM_ALT = GH_CAM_ALT + val;
-		if ( GH_CAM_ALT < GH_CAM_ALT_MIN ) GH_CAM_ALT = GH_CAM_ALT_MIN;
-            }
-	},
-	Cesium.ScreenSpaceEventType.MOUSE_MOVE
-    );
-    act.setInputAction(
-	function(click) {
-            if(GH_IS_DRAGGING) {
-		GH_IS_DRAGGING = false;
-		GH_V.scene.screenSpaceCameraController.enableRotate = true;
-            }
-	},
-	Cesium.ScreenSpaceEventType.LEFT_UP
-    );
-    
 }
 
 
@@ -3395,7 +3242,7 @@ function ghUpdateTitleMarqueeAndTimetable(ctime,multiplier,cartesian) {
 }
 ///////////////////////////////////////
 
-function ghSetAboutContent() {
+function ghSetAboutModalContent() {
     var data = "Geoglyph Rail " + GH_REV + '<BR>';
     //data += GH_REV + '<BR>';
     //data += '<BR>';
@@ -3409,6 +3256,22 @@ function ghSetAboutContent() {
     data += 'Window devcice pixel : ' + dwidth + 'px x ' + dheight + 'px<BR>';
     data += 'Device Pixel Ratio : ' + window.devicePixelRatio + '<BR>';
     $('#gh_aboutcontent').html(data);
+};
+
+function ghSetStartModalContent() {
+    if ( GH_LOCAL_CONSOLE ) {
+	$("#gh_loaddata_content").show();
+	$("#gh_savedata_content").show();
+//	if ( GH_FIELDINDEX.args == null ) {
+//	    $("#gh_loaddata_content").show();
+//	} else {
+//	    if ( GH_FIELDINDEX.args.tc ) {
+//		$("#gh_savedata_content").show();
+//	    } else {
+//		$("#gh_loaddata_content").show();
+//	    }
+//	}
+    }
 };
 
 function ghOnclickDialogButton(dialogid , mode) {
@@ -3633,7 +3496,7 @@ function ghReceiveUnitWorker(event) {
 	    ghSetTitleMarquee(ret.result);
 	    ghStartTitleMarquee();
 	    if ( ret.type > 0 ) {
-		setTimeout( __ghDelayStopTitleMarquee, 1234 );
+		setTimeout( __ghDelayStopTitleMarquee, 6174 );
 	    }
 	} else	if ( ret.tgt == 'marquee' ) {
 	    ghSetTitleMarquee(ret.result);
@@ -3694,10 +3557,12 @@ function ghResizeLeafletDialog(sz) {
 function ghInitDialog() {
 
     $('#ghaboutmodal').modal({
-	onOpenStart : ghSetAboutContent
+	onOpenStart : ghSetAboutModalContent
     });
 
-    $('#ghstartmodal').modal();
+    $('#ghstartmodal').modal({
+	onOpenStart : ghSetStartModalContent
+    });
 
     $('#ghtimetablemodal').modal({
 	onOpenStart : function () {
@@ -3718,7 +3583,7 @@ function ghInitDialog() {
 	width: 320,
 	height: 320,
 	resizable : false,
-	position : { my: "right bottom", at : "right bottom" , of : window }
+	position : { my: "right bottom-120", at : "right bottom" , of : window }
     });
     //$('#ghViewpointDialog').dialog('close');
     $( '#ghviewpointbtn' ).click(function() {
@@ -3732,11 +3597,11 @@ function ghInitDialog() {
     //GH_DIALOG_TITLE.leaflet,
     $( "#ghLeafletDialog" ).dialog({
 	title: 'Leaflet',
-	width: 400,
-	height: 400,
+	width: 412,
+	height: 412,
 	minWidth: 200,
 	minHeight: 200,
-	position : { my: "right center", at : "right center" , of : window },
+	position : { my: "right top+90", at : "right top" , of : window },
 	resizeStop: function ( event,ui ) { ghResizeLeafletDialog(ui.size) }	     
     });
     //$('#gh_LeafletDialog').dialog('close');
@@ -3891,38 +3756,357 @@ function ghResizeWindow() {
     $('#ghstatusbarbottom').css('top',y);    
     
 }
-function ghGetHtmlArgument(type) {
+/////////////////////////////////////////
+function ghDownloadSaveData() {
+
+    let ret = {
+	"argument" : GH_FIELDINDEX.args,
+	"window" : {
+	    "cesium" : null,
+	    "leaflet" : null
+	},
+	"param" : {
+	    "menubar" : null,
+	    "statusbar" : null
+	},
+	"viewpoint" : {
+	    "mode" : GH_CAM_MODE,
+	    "centering" : GH_LAYER.autocenter,
+	    "entityid" : null,
+	    "camdistance" : GH_CAM_DISTANCE,
+	    "camalt" : GH_CAM_ALT
+	}
+    }
+
+    if ( GH_PICK_ENTITY ) {
+	ret.viewpoint.entityid = GH_PICK_ENTITY._id;
+    }
+    
+    ret.window.cesium = {
+	"size" : {
+	    "width" : window.innerWidth,
+	    "height" : window.innerHeight
+	},
+	"camera" : {
+	    "positionWC" : GH_V.camera.positionWC,
+	    "heading" : GH_V.camera.heading,
+	    "pitch" : GH_V.camera.pitch,
+	    "roll" : GH_V.camera.roll,
+	    "upWC" : GH_V.camera.upWC
+	}
+    };
+
+
+    let leafletdialog = $('#ghLeafletDialog').dialog("option");
+    //console.log(leafletdialog.position);
+    ret.window.leaflet = {
+	"isOpen" : $('#ghLeafletDialog').dialog('isOpen'),
+	"position" : {
+	    "at" : leafletdialog.position.at,
+	    "my" : leafletdialog.position.my
+	},
+	"size" : {
+	    "width" : leafletdialog.width,
+	    "height" : leafletdialog.height
+	},
+	"zoom" : GH_M.getZoom(),
+	"center" : GH_M.getCenter()
+    }
+
+    ret.param.statusbar = {
+	"multiplier" : ghGetStatusbarMultiplier(),
+	"timestamp" : $('#timedescription').html()
+    }
+	
+    ret.param.menubar = {
+	"threedprop" : {
+	    "quality" : $('#qualityslider').val(),
+	    "tilecachesize" : $('#tilecachesizeslider').val(),
+	    "showframerate" : $('#frameratecheckbox').is(':checked'),
+	    "showtilequeue" : $('#tilequeuecheckbox').is(':checked'),
+	    "showspeedometer" : $('#speedmetercheckbox').is(':checked'),
+	    "enablesun" : $('#lightingcheckbox').is(':checked'),
+	    "enablewater" : $('#watercheckbox').is(':checked'),
+	    "enabletunnel" : $('#tunnelcheckbox').is(':checked'),
+	    "enable3dobject" : $('#tile3dcheckbox').is(':checked')
+	},
+	"modelprop" : null,
+	"cameraprop" : {
+	    "autocamera" : $('#autocameracheckbox').is(':checked'),
+	    "cameraminutes" : $('#autocameraminutes').val(),
+	    "enablestoptimer" : $('#enablestoptimercheckbox').is(':checked'),
+	    "stoptimerhour" : $('#stoptimerhour').val(),
+	    "stoptimermin" : $('#stoptimermin').val()
+	},
+	"weatherprop" : null,
+	"seprop" : null
+    }
+    
+    let d = new Date();
+    let dstr = d.toString().replace(/\s+/g,'');
+    let outfilename = "geoglyphrail_" + dstr + ".ghjson";
+
+    let download = document.createElement("a");
+    document.body.appendChild(download);
+    download.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent( JSON.stringify(ret) ) );
+    download.setAttribute('download', outfilename);    
+    download.click();
+    download.remove();
+
+    $('#ghstartmodal').modal('close');
+    alert(outfilename + ' downloaded');
+    
+}
+
+
+function ghUploadSaveData( data ) {
+    var files = data.files;
+    var reader = new FileReader();
+    let outfilename = escape(files[0].name);
+    reader.readAsText(files[0]);
+    reader.onload = function(e) {
+        GH_SAVEFILE_JSON = JSON.parse(e.target.result);
+	ghParseSavefile();
+	$('#gh_routefilemodal').modal('close');
+	alert(outfilename + ' uploaded');
+    } 
+    $('#ghstartmodal').modal('close');
+}
+
+function ghParseSavefileViewpoint() {
+
+
+    ////////////////////////////
+    // viewpoint param
+    //   Setup after datetime
+    if ( GH_SAVEFILE_JSON.viewpoint ) {
+	if ( GH_SAVEFILE_JSON.viewpoint.entityid ) {
+	    if ( GH_SAVEFILE_JSON.viewpoint.entityid == null ) {
+		// NOP
+	    } else {
+		let eid = GH_SAVEFILE_JSON.viewpoint.entityid;
+		let entity = GH_V.entities.getById( eid );
+		if ( ( typeof entity ) === 'undefined' ) {
+		    // NOP
+		}  else {
+		    __ghSetPickEntity( entity );
+
+
+		    // For leaflet 
+		    if ( GH_SAVEFILE_JSON.viewpoint.centering ) {
+			$('#ghmapcentercheckbox').prop('checked', true);
+			ghSetAutoCenterLeafletMap( true );
+		    } else {
+			$('#ghmapcentercheckbox').prop('checked', false);
+			ghSetAutoCenterLeafletMap( false );
+		    }
+		}
+	    }
+	}
+
+	if ( GH_SAVEFILE_JSON.viewpoint.camdistance ) {
+	    GH_CAM_DISTANCE = parseFloat(GH_SAVEFILE_JSON.viewpoint.camdistance);
+	}
+	if ( GH_SAVEFILE_JSON.viewpoint.camalt ) {
+	    GH_CAM_ALT = parseFloat(GH_SAVEFILE_JSON.viewpoint.camalt);
+	}
+	if ( GH_SAVEFILE_JSON.viewpoint.mode ) {
+	    GH_CAM_MODE = parseInt(GH_SAVEFILE_JSON.viewpoint.mode,10);
+	    ghOnClickViewpointButton( GH_CAM_MODE );
+	}
+
+    }
+    
+    
+}
+function ghParseSavefile() {
+    //console.log(GH_SAVEFILE_JSON);
+
+    ////////////////////////////
+    // window param
+    if ( GH_SAVEFILE_JSON.window ) {
+
+	//////////////////////
+	//  Leaflet Parameter
+	if ( GH_SAVEFILE_JSON.window.leaflet ) {
+	    if ( GH_SAVEFILE_JSON.window.leaflet.position ) {
+		$('#ghLeafletDialog').dialog("option","position", {
+		    "at" : GH_SAVEFILE_JSON.window.leaflet.position.at,
+		    "my" : GH_SAVEFILE_JSON.window.leaflet.position.my,
+		    "of" : window
+		});
+	    }
+	    if ( GH_SAVEFILE_JSON.window.leaflet.size ) {
+		$('#ghLeafletDialog').dialog("option","width", parseInt( GH_SAVEFILE_JSON.window.leaflet.size.width,10) );
+		$('#ghLeafletDialog').dialog("option","height", parseInt( GH_SAVEFILE_JSON.window.leaflet.size.height,10) );
+	    }
+
+	    ghResizeLeafletDialog(null);
+	    
+	    if ( GH_SAVEFILE_JSON.window.leaflet.zoom ) {
+		GH_M.setZoom( parseInt( GH_SAVEFILE_JSON.window.leaflet.zoom, 10 )  );
+	    }
+	    
+	    if ( GH_SAVEFILE_JSON.window.leaflet.center ) {
+		let p = new L.LatLng(
+		    parseFloat(GH_SAVEFILE_JSON.window.leaflet.center.lat),
+		    parseFloat(GH_SAVEFILE_JSON.window.leaflet.center.lng)
+		);
+		GH_M.setView(p);
+	    }
+	    if ( GH_SAVEFILE_JSON.window.leaflet.isOpen ) {
+		$('#ghLeafletDialog').dialog('open');
+	    } else {
+		$('#ghLeafletDialog').dialog('close');
+	    }
+	}
+
+	//////////////////////
+	//  Cesium Parameter
+
+
+	
+    }
+
+    ////////////////////////////
+    // param
+    if ( GH_SAVEFILE_JSON.param ) {
+
+	/////////////////////////
+	// Menu bar
+	if ( GH_SAVEFILE_JSON.param.menubar ) {
+
+	    ////////////////////////
+	    // 3D prop
+	    if ( GH_SAVEFILE_JSON.param.menubar.threedprop ) {
+		if ( GH_SAVEFILE_JSON.param.menubar.threedprop.quality ) {
+		    let val = parseInt(GH_SAVEFILE_JSON.param.menubar.threedprop.quality,10);
+		    $('#qualityslider').val(val),
+		    ghSetCesiumQuality( val );
+		}
+		if ( GH_SAVEFILE_JSON.param.menubar.threedprop.tilecachesize ) {
+		    let val = parseInt(GH_SAVEFILE_JSON.param.menubar.threedprop.tilecachesize,10);
+		    $( '#tilecachesizeslider' ).val(val);
+		    ghSetCesiumCacheSize(val);
+		}
+
+		if ( GH_SAVEFILE_JSON.param.menubar.threedprop.enabletunnel ) {
+		    ghEnableCesiumTunnel( true );
+		    $('#tunnelcheckbox').prop('checked', true);
+		} else {
+		    ghEnableCesiumTunnel( false );
+		    $('#tunnelcheckbox').prop('checked', false);
+		}
+
+
+		if ( GH_SAVEFILE_JSON.argument.gt ) {
+		    // NOP
+		} else {
+		    if ( GH_SAVEFILE_JSON.param.menubar.threedprop.enable3dobject ) {
+			ghEnableCesium3Dtile( true );
+			$('#tile3dcheckbox').prop('checked', true);
+		    } else {
+			ghEnableCesium3Dtile( false );
+			$('#tile3dcheckbox').prop('checked', false);
+		    }
+		}
+		
+	    }
+
+
+	    ////////////////////////
+	    // Cameraprop
+	    if ( GH_SAVEFILE_JSON.param.menubar.cameraprop ) {
+
+
+		if ( GH_SAVEFILE_JSON.param.menubar.cameraprop.autocamera ) {
+		    $( '#autocameracheckbox').prop('checked', true);
+		    ghEnableAutoCamera( true );
+		} else {
+		    $( '#autocameracheckbox').prop('checked', false);
+		    ghEnableAutoCamera( false );
+		}
+
+		if ( GH_SAVEFILE_JSON.param.menubar.cameraprop.cameraminutes ) {
+		    let val = parseInt(GH_SAVEFILE_JSON.param.menubar.cameraprop.cameraminutes,10);
+		    $( '#autocameraminutes').val(val);
+		    ghSetAutoCameraInterval( $('#autocameraminutes').val() );
+		}
+	    }
+
+	}
+	
+	
+	/////////////////////////
+	// Status bar
+	if ( GH_SAVEFILE_JSON.param.statusbar ) {
+
+	    if ( GH_SAVEFILE_JSON.param.statusbar.multiplier ) {
+		$('#ghcesiummultiplier').val( parseInt( GH_SAVEFILE_JSON.param.statusbar.multiplier , 10 ) );
+		ghSetCesiumMultiplier( $('#ghcesiummultiplier').val() );
+	    }
+
+	    if ( GH_SAVEFILE_JSON.param.statusbar.timestamp ) {
+		let d = new Date();
+		let str = GH_SAVEFILE_JSON.param.statusbar.timestamp.split(":");
+		d.setHours( parseFloat(str[0]) );
+		d.setMinutes( parseFloat(str[1]) );
+		d.setSeconds( parseFloat(str[2]) );			      
+		let ts = d.getTime();
+		let ts_before = ts - ( 1000 * 60 * 1 ); // before 1 min
+		let d_before = new Date(ts_before);
+
+		let h = d_before.getHours();
+		if ( h < 10 ) h = "0" + h;
+
+		let m = d_before.getMinutes();
+		if ( m < 10 ) m = "0" + m;
+
+		$('#ghtimepicker_input' ).val(h+":"+m);
+		
+		ghSetTimePicker( $('#ghtimepicker_input' ).val() , true );
+	    }
+
+	}
+
+	
+    }
+
+    setTimeout(ghParseSavefileViewpoint,997);
+
+}
+
+
+/////////////////////////////////////////
+
+
+
+function ghGetCurrentArgument() {
+
+    var ret = {};
     var str = location.search.substring(1);
-    var ret = "nop";
-    if (str) {
-        var x = str.split("&");
-        for(var i=0,len=x.length;i<len;i++){
-            var y = x[i].split("=");
-            if ( y[0] == "tc" && type == "tc" ) {
-                if ( y[1] in GH_FIELDINDEX.data.fieldlist ){
-                    ret = y[1];
-                }
-            }
-            if ( y[0] == "fd" && type == "fd" ) {
-                ret = y[1];
-            }
-            if ( y[0] == "gt" && type == "gt" ) {
-                ret = y[1];
-            }
-            if ( y[0] == "bp" && type == "bp" ) {
-                ret = y[1];
-            }
-            if ( y[0] == "us" && type == "us" ) {
-                ret = y[1];
-            }
-            if ( y[0] == "tm" && type == "tm" ) {
-                ret = y[1];
-            }
-        }
+    var args = str.split("&");
+
+    if ( args[0] == "" ) {
+	// No argument
+	return null
+    }
+	
+    for(let i=0,len=args.length;i<len;i++){
+	let param = args[i].split("=");
+	//if ( ret[param[0]] ) {
+	//}
+	if ( isNaN(param[1]) ) {
+	    ret[param[0]] = param[1];
+	} else {
+	    ret[param[0]] = parseFloat(param[1]);
+	}
+
     }
     return ret;
 
 }
+
 function ghCalcObtuseAngle(angle01,angle12) {
     //
     // -180.0 <  angle  < 180.0
@@ -4379,7 +4563,7 @@ function ghLoadFieldData(uri) {
 	if ( GH_LOCAL_CONSOLE ) {
 	    // NOP
 	} else {
-	    ghCheckData(GH_FIELD.id,GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].name);
+	    ghCheckData(GH_FIELD.id,GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].name);
 	}
 	
     }).fail(function(XMLHttpRequest, textStatus,errorThrown){
@@ -4406,33 +4590,14 @@ function ghLoadFieldIndex() {
     }).done(function(res){
 	//
 	GH_FIELDINDEX.data = res;
-	GH_FIELDINDEX.args = ghGetHtmlArgument("tc");
+	GH_FIELDINDEX.args = ghGetCurrentArgument();
+	
 	if ( GH_LOCAL_CONSOLE ) {
 	    GH_FIELDINDEX.urilist = GH_FIELDINDEX.data.urilist_local;
 	} else {
 	    GH_FIELDINDEX.urilist = GH_FIELDINDEX.data.urilist_www;
 	}
-	if ( GH_FIELDINDEX.args == "nop" ) {
-	    $('#ghstartmodal').modal('open');
-	} else {
-	    // for test ghGetFieldCustomData(fd);
-	    
-	    //ghClearCesiumData();
-	    //ghClearLeafletData();
-	    //ghClearFieldData();
 
-	    ghLoadFieldData(ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].file));
-	    
-	}
-
-	let stoptimer = ghGetHtmlArgument("tm");
-	if ( stoptimer == "nop" ) {
-	    $("#ghstoptimerinput").hide();
-	} else {
-	    $("#ghstoptimerinput").show();
-	}
-
-	
 	ghSendCommandUnitWorker('fieldindex',GH_FIELDINDEX);
 	if ( GH_DEBUG_CONSOLE ) console.log( GH_FIELDINDEX );
     }).fail(function(XMLHttpRequest, textStatus,errorThrown){
@@ -4473,8 +4638,8 @@ function ghBroadcastPrimaryReceiveMessage(data) {
 	    "urilist" : GH_FIELDINDEX.urilist,
 	    "args" : GH_FIELDINDEX.args,
 	    "lineid" : $("input[name='timetableline']:checked").val(),
-	    "name" : GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].name,
-	    "file" : GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args].file
+	    "name" : GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].name,
+	    "file" : GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file
 	}; 
 	ghBroadcastSendUniqueID(initdata);
     } else if (data.type == 'GETUNITS') {
@@ -4529,52 +4694,140 @@ function ghCheckBroadcastAPI() {
 //  Broadcast Channel Function
 //
 /////////////////////////////
-function ghInitHtmlArgument() {
-    //  gt = Google 3D tile ( photorealistic 3D tile )
-    //       default false
-    //  bp = Bump Angle
-    //       default 7 ( deg )
-    //
-    //  us = Cesium Clock Multiplier 
-    //       default 1.0
-    //
-    let arg = ghGetHtmlArgument('gt');
-    if ( arg == "nop" ) {
-	// NOP
+
+
+/////////////////////////////
+//
+//  Html Arguments
+//
+
+function ghSetGooglePhotorealistic3D(flag) {
+    if ( flag ) {
+	GH_PHOTOREALISTIC_3DTILE = true;
+	GH_S.setTerrain( GH_TPV[0] );
+	Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
+	__setupPhotorealisticGoogle3D();
+	console.log('use Google Photorealistic 3D tile');
+
+	GH_S.globe.show = false;
+    
+	$("#gh3DProperty3DtileCheckbox").hide(); // Not used
+	$( '#tilecachesizeslider' ).val(2000);  //  Up size cache
+	ghSetCesiumCacheSize(2000);
     } else {
-	///////////////////////////////////////////////
-	///  Only Localhost 
-	///
-	if ( GH_LOCAL_CONSOLE ) {
-	    GH_PHOTOREALISTIC_3DTILE = true;
-	    Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
-	    console.log('use Google Photorealistic 3D tile');
-	    $("#gh3DProperty3DtileCheckbox").hide();
-	}
-    }
-    arg = ghGetHtmlArgument('bp');
-    if ( arg == "nop" ) {
-	// NOP
-    } else {
-	let b = parseFloat(arg);	
-	if ( b > 0 && b < 40 ) {
-	    GH_UNIT_HEIGHT_SIN = Math.sin( b * Math.PI / 180 ) ;
-	    console.log('use Bump Angle ' + b + ' degree');
-	}
+	GH_PHOTOREALISTIC_3DTILE = false;
+	GH_V.baseLayer = Cesium.ImageryLayer.fromProviderAsync(
+	    Cesium.ArcGisMapServerImageryProvider.fromBasemapType(
+		Cesium.ArcGisBaseMapType.SATELLITE
+	    )
+	);
+	GH_S.setTerrain( GH_TPV[0] );
+	GH_S.globe.show = true;
     }
 
-    arg = ghGetHtmlArgument('us');
-    if ( arg == "nop" ) {
-	// NOP
+}
+function ghSetBumpAngle(val) {
+    //
+    //  default = GH_UNIT_HEIGHT_SIN = Math.sin( 4 * Math.PI / 180 ) ; //  4 deg
+    //
+    if ( val > 0 && val < 40 ) {
+	GH_UNIT_HEIGHT_SIN = Math.sin( val * Math.PI / 180 ) ;
+	console.log('use Bump Angle ' + val + ' degree');
     } else {
-	if ( isNaN(arg) ) {
-	    // NOP
+	console.log('wrong Bump Angle ' + val );
+    }
+}
+
+function ghSetMultiplierUnitScale(val) {
+    //
+    //  default = GH_CLOCK_UNIT_SCALE = 1.0;
+    //
+    if ( isNaN(val) ) {
+	console.log('Wrong Multiplier unit scale ' + val );
+    } else {
+	GH_CLOCK_UNIT_SCALE = Math.abs(val);
+	console.log('Cesium Clock Multiplier unit scale ' + GH_CLOCK_UNIT_SCALE + ' times');
+    }
+}
+function ghSetBaseArgument() {
+    if ( GH_FIELDINDEX.data == null ) {
+	//$('#ghstartmodal').modal('open');
+	setTimeout( ghSetBaseArgument, 1234 );
+	return;
+    }
+
+    if ( GH_FIELDINDEX.args == null ) {
+	$('#ghstartmodal').modal('open');
+    } else {
+	// for test ghGetFieldCustomData(fd);
+	    
+	//ghClearCesiumData();
+	//ghClearLeafletData();
+	//ghClearFieldData();
+
+	//  tc = train code
+	//
+	//
+	//  gt = Google 3D tile ( photorealistic 3D tile )
+	//       default false
+	//  bp = Bump Angle
+	//       default 7 ( deg )
+	//
+	//  us = Cesium Clock Multiplier 
+	//       default 1.0
+	//
+	//  tm = use Stop timer
+	//
+
+
+	if ( GH_FIELDINDEX.args.gt ) {
+	    ///////////////////////////////////////////////
+	    ///  Only Localhost 
+	    if ( GH_LOCAL_CONSOLE ) {
+		ghSetGooglePhotorealistic3D(true);
+	    } else {
+		ghSetGooglePhotorealistic3D(false);
+	    }
 	} else {
-	    GH_CLOCK_UNIT_SCALE = Math.abs(parseFloat(arg));
-	    console.log('Cesium Clock Multiplier unit scale ' + GH_CLOCK_UNIT_SCALE + ' times');
+	    ghSetGooglePhotorealistic3D(false);
 	}
-    }
 
+	if ( GH_FIELDINDEX.args.bp ) {
+	    ghSetBumpAngle(GH_FIELDINDEX.args.bp);
+	}
+
+
+	if ( GH_FIELDINDEX.args.us ) {
+	    ghSetMultiplierUnitScale(GH_FIELDINDEX.args.us);
+	}
+
+	if ( GH_FIELDINDEX.args.tm ) {
+	    $("#ghstoptimerinput").show();
+	} else {
+	    $("#ghstoptimerinput").hide();
+	}
+
+
+	if ( GH_FIELDINDEX.args.tc ) {
+	    if ( GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc] ) {
+		if ( GH_PHOTOREALISTIC_3DTILE ) {
+		    //Delay for google 
+		    setTimeout( ghLoadFieldData, 495, ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file) );
+		} else {
+		    ghLoadFieldData(
+			ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file)
+		    );
+		}
+	    } else {
+		console.log('Wrong code parameter ' + GH_FIELDINDEX.args.tc);
+		$('#ghstartmodal').modal('open');
+	    }
+	} else {
+	    $('#ghstartmodal').modal('open');
+	}
+
+	
+    }
 }
 
 
@@ -4594,13 +4847,13 @@ $(document).ready(function(){
 //	location.href = 'index.html';
 //    }
 
-    ghInitHtmlArgument();
-
-    ghLoadFieldIndex();
-
-    //
     ghInitUnitWorker();
     ghSendCommandUnitWorker('initialize',0);
+
+
+    //
+    ghLoadFieldIndex();
+
 
     //
     ghInitDialog();
@@ -4612,13 +4865,12 @@ $(document).ready(function(){
     ghInitInputForm();
 
     //
-    if ( GH_PHOTOREALISTIC_3DTILE ) {
-	ghInitCesiumViewerGoogle('ghCesiumContainer');
-	$( '#tilecachesizeslider' ).val(2000);
-	ghSetCesiumCacheSize(2000);
-    } else {
-	ghInitCesiumViewerDefault('ghCesiumContainer');
-    }
+    ghInitCesiumViewer('ghCesiumContainer');
+//    if ( GH_PHOTOREALISTIC_3DTILE ) {
+//	ghInitCesiumViewerGoogle('ghCesiumContainer');
+//    } else {
+//	ghInitCesiumViewerDefault('ghCesiumContainer');
+//    }
 
     //
     ghInitSpeedoMeter();
@@ -4626,15 +4878,23 @@ $(document).ready(function(){
     //  show 'play'
     ghChangePlayPauseButton(false);
 
+    //  load save button ( test )
+    $("#gh_loaddata_content").hide();
+    $("#gh_savedata_content").hide();
+
+
     // Bottom status bar position
     $(window).resize(ghResizeWindow);
     ghResizeWindow();
 
-//    $('#gh_startmodal').modal('open');
-//
     //ghAvoidOperation();
     ghCheckBroadcastAPI();
 
+    // Setup base argument
+    ghSetBaseArgument();
+
+
+    // Show Revisions
     ghShowRevisionConsole();    
 });
 

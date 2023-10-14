@@ -392,11 +392,21 @@
     <!-- Sound Effect Dialog -->
     
     <!-- Start Modal Structure -->
-    <div id="ghstartmodal" class="modal" style="height:320px;width:320px;">
+    <div id="ghstartmodal" class="modal" style="height:380px;width:380px;">
       <div class="modal-content">
-	<a href="rail2map.html" class="ui medium rounded image">
-          <img src="../images/linemap.jpg" style="width:280px;height:144px;">
-	  <i class="material-icons">launch</i><span data-t="modal.selectmap"></span>
+	<a href="rail2map.html" class="ui medium rounded image"><i class="material-icons left">new_releases</i>New data<BR>
+          <img src="../images/linemap.jpg" style="width:280px;height:144px;"></a>
+	  <!--  <i class="material-icons">launch</i><span data-t="modal.selectmap"></span> -->
+
+	<!--   test -->
+	<BR>
+	<div id="gh_loaddata_content">
+	  <a id="gh_loaddatahref" href="#"><i class="material-icons left">file_upload</i><input type="file" id="gh_loaddata" onchange="ghUploadSaveData( this );" accept=".ghjson">Load data</a>
+	</div>
+	<BR>
+	<div id="gh_savedata_content">
+	  <a id="gh_savedata" href="#"><i class="material-icons left">file_download</i>Save data</a>
+	</div>
       </div>
       <!--
       <div class="modal-footer">
