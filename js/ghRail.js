@@ -3411,7 +3411,11 @@ function ghDelayInitializeCzmlScene() {
     if ( ( typeof $('.tooltipped')[0].M_Tooltip) === 'undefined' ) {
 	// NOP
     } else {
-	$('.tooltipped').tooltip('open');
+	if ( GH_SAVEFILE_JSON != null ) {
+	    ghSetupSaveData();
+	} else {
+	    $('.tooltipped').tooltip('open');
+	}
     }
 	    
     //  For CZML Data Check
@@ -3425,6 +3429,7 @@ function ghDelayInitializeCzmlScene() {
 	}
     }
 
+    
 }
 
 function ghCzmlLoadFinished(val) {
@@ -3858,7 +3863,12 @@ function ghDownloadSaveData() {
     
 }
 
-
+function ghSetupSaveData( ) {
+    ghSetParamConfig();
+    ghOnClickPlayPauseButton(); // Auto play start for viewport
+    setTimeout( ghSetViewportConfig,997);
+}
+    
 function ghUploadSaveData( data ) {
     var files = data.files;
     var reader = new FileReader();
@@ -3866,19 +3876,24 @@ function ghUploadSaveData( data ) {
     reader.readAsText(files[0]);
     reader.onload = function(e) {
         GH_SAVEFILE_JSON = JSON.parse(e.target.result);
-	ghParseSavefile();
+	if ( GH_SAVEFILE_JSON.argument ) {
+	    GH_FIELDINDEX.args = GH_SAVEFILE_JSON.argument;
+	    ghSetBaseArgument();
+	}
+	ghSetWindowConfig();
+	//ghSetParamConfig(); in ghSetupSaveData at ghDelayInitializeCzmlScene() 
+	//ghOnClickPlayPauseButton(); in ghSetupSaveData  at ghDelayInitializeCzmlScene() 
+	
 	$('#gh_routefilemodal').modal('close');
 	alert(outfilename + ' uploaded');
     } 
     $('#ghstartmodal').modal('close');
 }
 
-function ghParseSavefileViewpoint() {
-
+function ghSetViewportConfig() {
 
     ////////////////////////////
-    // viewpoint param
-    //   Setup after datetime
+    // viewpoint configure
     if ( GH_SAVEFILE_JSON.viewpoint ) {
 	if ( GH_SAVEFILE_JSON.viewpoint.entityid ) {
 	    if ( GH_SAVEFILE_JSON.viewpoint.entityid == null ) {
@@ -3919,11 +3934,10 @@ function ghParseSavefileViewpoint() {
     
     
 }
-function ghParseSavefile() {
-    //console.log(GH_SAVEFILE_JSON);
+function ghSetWindowConfig() {
 
-    ////////////////////////////
-    // window param
+   ////////////////////////////
+    // window configure
     if ( GH_SAVEFILE_JSON.window ) {
 
 	//////////////////////
@@ -3963,13 +3977,20 @@ function ghParseSavefile() {
 
 	//////////////////////
 	//  Cesium Parameter
-
-
+	if ( GH_SAVEFILE_JSON.window.cesium.size ) {
+	    window.resizeTo(
+		parseInt(GH_SAVEFILE_JSON.window.cesium.size.width,10),
+		parseInt(GH_SAVEFILE_JSON.window.cesium.size.height,10)
+	    );
+	}
 	
     }
+}
+
+function ghSetParamConfig() {
 
     ////////////////////////////
-    // param
+    // param configure
     if ( GH_SAVEFILE_JSON.param ) {
 
 	/////////////////////////
@@ -4071,8 +4092,6 @@ function ghParseSavefile() {
 
 	
     }
-
-    setTimeout(ghParseSavefileViewpoint,997);
 
 }
 
@@ -4565,7 +4584,7 @@ function ghLoadFieldData(uri) {
 	} else {
 	    ghCheckData(GH_FIELD.id,GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].name);
 	}
-	
+
     }).fail(function(XMLHttpRequest, textStatus,errorThrown){
 	var msg = "train data cannot load ";
 	msg += " XMLHttpRequest " + XMLHttpRequest.status ;
@@ -4858,19 +4877,14 @@ $(document).ready(function(){
     //
     ghInitDialog();
 
-    //
+    // init leaflet container
     ghInitLeafletMap();
     
     // order important , after init leaflet ( depends on )
     ghInitInputForm();
 
-    //
+    // init cesium container
     ghInitCesiumViewer('ghCesiumContainer');
-//    if ( GH_PHOTOREALISTIC_3DTILE ) {
-//	ghInitCesiumViewerGoogle('ghCesiumContainer');
-//    } else {
-//	ghInitCesiumViewerDefault('ghCesiumContainer');
-//    }
 
     //
     ghInitSpeedoMeter();
