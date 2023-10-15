@@ -3505,6 +3505,9 @@ function ghReceiveUnitWorker(event) {
 	    }
 	} else	if ( ret.tgt == 'marquee' ) {
 	    ghSetTitleMarquee(ret.result);
+	    if ( GH_TITLE_MARQUEE.data('paused') && GH_IS_PLAYING ) {
+		ghStartTitleMarquee();
+	    }
 	} else {
 	    // NOP
 	}
