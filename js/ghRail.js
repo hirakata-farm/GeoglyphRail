@@ -3412,7 +3412,7 @@ function ghDelayInitializeCzmlScene() {
 	// NOP
     } else {
 	if ( GH_SAVEFILE_JSON != null ) {
-	    ghSetupSaveData();
+	    setTimeout( ghSetupSaveData ,997);
 	} else {
 	    $('.tooltipped').tooltip('open');
 	}
@@ -3864,6 +3864,7 @@ function ghDownloadSaveData() {
 }
 
 function ghSetupSaveData( ) {
+    ghSetWindowConfig();
     ghSetParamConfig();
     ghOnClickPlayPauseButton(); // Auto play start for viewport
     setTimeout( ghSetViewportConfig,997);
@@ -3880,7 +3881,7 @@ function ghUploadSaveData( data ) {
 	    GH_FIELDINDEX.args = GH_SAVEFILE_JSON.argument;
 	    ghSetBaseArgument();
 	}
-	ghSetWindowConfig();
+	//ghSetWindowConfig(); in ghSetupSaveData at ghDelayInitializeCzmlScene() 
 	//ghSetParamConfig(); in ghSetupSaveData at ghDelayInitializeCzmlScene() 
 	//ghOnClickPlayPauseButton(); in ghSetupSaveData  at ghDelayInitializeCzmlScene() 
 	
@@ -3956,18 +3957,23 @@ function ghSetWindowConfig() {
 	    }
 
 	    ghResizeLeafletDialog(null);
-	    
+
 	    if ( GH_SAVEFILE_JSON.window.leaflet.zoom ) {
-		GH_M.setZoom( parseInt( GH_SAVEFILE_JSON.window.leaflet.zoom, 10 )  );
+		let val = parseFloat( GH_SAVEFILE_JSON.window.leaflet.zoom );
+		if ( val > GH_M.getMaxZoom() ) {
+		    val = GH_M.getMaxZoom();
+		}
+		GH_M.setZoom( val );
 	    }
-	    
+
 	    if ( GH_SAVEFILE_JSON.window.leaflet.center ) {
 		let p = new L.LatLng(
 		    parseFloat(GH_SAVEFILE_JSON.window.leaflet.center.lat),
 		    parseFloat(GH_SAVEFILE_JSON.window.leaflet.center.lng)
 		);
-		GH_M.setView(p);
+		GH_M.setView(p,GH_M.getZoom());
 	    }
+
 	    if ( GH_SAVEFILE_JSON.window.leaflet.isOpen ) {
 		$('#ghLeafletDialog').dialog('open');
 	    } else {
