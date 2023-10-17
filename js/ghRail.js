@@ -233,7 +233,7 @@ var GH_PRIMITIVE_ID = [];
 
 var GH_TRAIN_LABEL_Y_OFFSET = 20;
 
-var GH_SAVEFILE_JSON = null;
+var GH_CONFIGFILE_JSON = null;
 
 ///////////////////////////////
 //  Check Local Console
@@ -602,7 +602,7 @@ function ghInitInputForm() {
     });
     $( 'input[name="raindensity"]' ).change( function () {
 	var radio = "non";    
-	$('input[name="gh_weather"]').each(function(i){
+	$('input[name="cesiumweather"]').each(function(i){
             if ( $(this).is(':checked') ) {
 		radio = $(this).attr('value');
             }
@@ -622,7 +622,7 @@ function ghInitInputForm() {
     });
 
     $( '#gh_savedata').click(function(){
-	ghDownloadSaveData();
+	ghDownloadConfigData();
     });
 
     
@@ -712,6 +712,7 @@ function ghInitCesiumViewer(domid) {
 	scene3DOnly : true,
 	shadows : false,
 	vrButton: false,
+	requestRenderMode : true,
 	terrainShadows : Cesium.ShadowMode.DISABLED,
 	automaticallyTrackDataSourceClocks : true,
 	contextOptions : {
@@ -3411,8 +3412,8 @@ function ghDelayInitializeCzmlScene() {
     if ( ( typeof $('.tooltipped')[0].M_Tooltip) === 'undefined' ) {
 	// NOP
     } else {
-	if ( GH_SAVEFILE_JSON != null ) {
-	    setTimeout( ghSetupSaveData ,997);
+	if ( GH_CONFIGFILE_JSON != null ) {
+	    setTimeout( ghSetupConfigData ,997);
 	} else {
 	    $('.tooltipped').tooltip('open');
 	}
@@ -3765,9 +3766,18 @@ function ghResizeWindow() {
     
 }
 /////////////////////////////////////////
-function ghDownloadSaveData() {
+function ghDownloadConfigData() {
+    let d = new Date();
 
     let ret = {
+	"env" : {
+	    "revision" : GH_REV,
+	    "utime" : d.getTime(),
+	    "plathome" : navigator.platform,
+	    "cesium"  : Cesium.VERSION,
+	    "leaflet" : L.version,
+	    "jquery" : jQuery.fn.jquery
+	},
 	"argument" : GH_FIELDINDEX.args,
 	"window" : {
 	    "cesium" : null,
@@ -3825,7 +3835,14 @@ function ghDownloadSaveData() {
 	"multiplier" : ghGetStatusbarMultiplier(),
 	"timestamp" : $('#timedescription').html()
     }
-	
+
+    let wradio = "sunny"; // Default
+    $('input[name="cesiumweather"]').each(function(i){
+        if ( $(this).is(':checked') ) {
+	    wradio = $(this).attr('value');
+        }
+    });
+
     ret.param.menubar = {
 	"threedprop" : {
 	    "quality" : $('#qualityslider').val(),
@@ -3846,12 +3863,14 @@ function ghDownloadSaveData() {
 	    "stoptimerhour" : $('#stoptimerhour').val(),
 	    "stoptimermin" : $('#stoptimermin').val()
 	},
-	"weatherprop" : null,
+	"weatherprop" : {
+	    "weather" : wradio,
+	    "density" : $( '#gh_rainslider').val()
+	},
 	"seprop" : null
     }
     
-    let d = new Date();
-    let dstr = d.toString().replace(/\s+/g,'');
+    let dstr = d.toString().replace(/\s+/g,'_');
     let outfilename = "geoglyphrail_" + dstr + ".ghjson";
 
     let download = document.createElement("a");
@@ -3866,27 +3885,27 @@ function ghDownloadSaveData() {
     
 }
 
-function ghSetupSaveData( ) {
+function ghSetupConfigData( ) {
     ghSetWindowConfig();
     ghSetParamConfig();
     ghOnClickPlayPauseButton(); // Auto play start for viewport
     setTimeout( ghSetViewportConfig,997);
 }
     
-function ghUploadSaveData( data ) {
+function ghUploadConfigData( data ) {
     var files = data.files;
     var reader = new FileReader();
     let outfilename = escape(files[0].name);
     reader.readAsText(files[0]);
     reader.onload = function(e) {
-        GH_SAVEFILE_JSON = JSON.parse(e.target.result);
-	if ( GH_SAVEFILE_JSON.argument ) {
-	    GH_FIELDINDEX.args = GH_SAVEFILE_JSON.argument;
+        GH_CONFIGFILE_JSON = JSON.parse(e.target.result);
+	if ( GH_CONFIGFILE_JSON.argument ) {
+	    GH_FIELDINDEX.args = GH_CONFIGFILE_JSON.argument;
 	    ghSetBaseArgument();
 	}
-	//ghSetWindowConfig(); in ghSetupSaveData at ghDelayInitializeCzmlScene() 
-	//ghSetParamConfig(); in ghSetupSaveData at ghDelayInitializeCzmlScene() 
-	//ghOnClickPlayPauseButton(); in ghSetupSaveData  at ghDelayInitializeCzmlScene() 
+	//ghSetWindowConfig(); in ghSetupConfigData at ghDelayInitializeCzmlScene() 
+	//ghSetParamConfig(); in ghSetupConfigData at ghDelayInitializeCzmlScene() 
+	//ghOnClickPlayPauseButton(); in ghSetupConfigData  at ghDelayInitializeCzmlScene() 
 	
 	$('#gh_routefilemodal').modal('close');
 	alert(outfilename + ' uploaded');
@@ -3898,12 +3917,12 @@ function ghSetViewportConfig() {
 
     ////////////////////////////
     // viewpoint configure
-    if ( GH_SAVEFILE_JSON.viewpoint ) {
-	if ( GH_SAVEFILE_JSON.viewpoint.entityid ) {
-	    if ( GH_SAVEFILE_JSON.viewpoint.entityid == null ) {
+    if ( GH_CONFIGFILE_JSON.viewpoint ) {
+	if ( GH_CONFIGFILE_JSON.viewpoint.entityid ) {
+	    if ( GH_CONFIGFILE_JSON.viewpoint.entityid == null ) {
 		// NOP
 	    } else {
-		let eid = GH_SAVEFILE_JSON.viewpoint.entityid;
+		let eid = GH_CONFIGFILE_JSON.viewpoint.entityid;
 		let entity = GH_V.entities.getById( eid );
 		if ( ( typeof entity ) === 'undefined' ) {
 		    // NOP
@@ -3912,7 +3931,7 @@ function ghSetViewportConfig() {
 
 
 		    // For leaflet 
-		    if ( GH_SAVEFILE_JSON.viewpoint.centering ) {
+		    if ( GH_CONFIGFILE_JSON.viewpoint.centering ) {
 			$('#ghmapcentercheckbox').prop('checked', true);
 			ghSetAutoCenterLeafletMap( true );
 		    } else {
@@ -3923,14 +3942,23 @@ function ghSetViewportConfig() {
 	    }
 	}
 
-	if ( GH_SAVEFILE_JSON.viewpoint.camdistance ) {
-	    GH_CAM_DISTANCE = parseFloat(GH_SAVEFILE_JSON.viewpoint.camdistance);
+	if ( GH_CONFIGFILE_JSON.viewpoint.camdistance ) {
+	    GH_CAM_DISTANCE = parseFloat(GH_CONFIGFILE_JSON.viewpoint.camdistance);
 	}
-	if ( GH_SAVEFILE_JSON.viewpoint.camalt ) {
-	    GH_CAM_ALT = parseFloat(GH_SAVEFILE_JSON.viewpoint.camalt);
+	if ( GH_CONFIGFILE_JSON.viewpoint.camalt ) {
+	    GH_CAM_ALT = parseFloat(GH_CONFIGFILE_JSON.viewpoint.camalt);
 	}
-	if ( GH_SAVEFILE_JSON.viewpoint.mode ) {
-	    GH_CAM_MODE = parseInt(GH_SAVEFILE_JSON.viewpoint.mode,10);
+	if ( GH_CONFIGFILE_JSON.viewpoint.mode ) {
+	    GH_CAM_MODE = parseInt(GH_CONFIGFILE_JSON.viewpoint.mode,10);
+
+	    $('input:radio[name="viewpoint"]').each(function(index) {
+		if ( $(this).val() == GH_CAM_MODE ) {
+		    $(this).prop('checked', true);
+		} else {
+		    $(this).prop('checked', false);
+		}
+	    });
+	    
 	    ghOnClickViewpointButton( GH_CAM_MODE );
 	}
 
@@ -3942,42 +3970,42 @@ function ghSetWindowConfig() {
 
    ////////////////////////////
     // window configure
-    if ( GH_SAVEFILE_JSON.window ) {
+    if ( GH_CONFIGFILE_JSON.window ) {
 
 	//////////////////////
 	//  Leaflet Parameter
-	if ( GH_SAVEFILE_JSON.window.leaflet ) {
-	    if ( GH_SAVEFILE_JSON.window.leaflet.position ) {
+	if ( GH_CONFIGFILE_JSON.window.leaflet ) {
+	    if ( GH_CONFIGFILE_JSON.window.leaflet.position ) {
 		$('#ghLeafletDialog').dialog("option","position", {
-		    "at" : GH_SAVEFILE_JSON.window.leaflet.position.at,
-		    "my" : GH_SAVEFILE_JSON.window.leaflet.position.my,
+		    "at" : GH_CONFIGFILE_JSON.window.leaflet.position.at,
+		    "my" : GH_CONFIGFILE_JSON.window.leaflet.position.my,
 		    "of" : window
 		});
 	    }
-	    if ( GH_SAVEFILE_JSON.window.leaflet.size ) {
-		$('#ghLeafletDialog').dialog("option","width", parseInt( GH_SAVEFILE_JSON.window.leaflet.size.width,10) );
-		$('#ghLeafletDialog').dialog("option","height", parseInt( GH_SAVEFILE_JSON.window.leaflet.size.height,10) );
+	    if ( GH_CONFIGFILE_JSON.window.leaflet.size ) {
+		$('#ghLeafletDialog').dialog("option","width", parseInt( GH_CONFIGFILE_JSON.window.leaflet.size.width,10) );
+		$('#ghLeafletDialog').dialog("option","height", parseInt( GH_CONFIGFILE_JSON.window.leaflet.size.height,10) );
 	    }
 
 	    ghResizeLeafletDialog(null);
 
-	    if ( GH_SAVEFILE_JSON.window.leaflet.zoom ) {
-		let val = parseFloat( GH_SAVEFILE_JSON.window.leaflet.zoom );
+	    if ( GH_CONFIGFILE_JSON.window.leaflet.zoom ) {
+		let val = parseFloat( GH_CONFIGFILE_JSON.window.leaflet.zoom );
 		if ( val > GH_M.getMaxZoom() ) {
 		    val = GH_M.getMaxZoom();
 		}
 		GH_M.setZoom( val );
 	    }
 
-	    if ( GH_SAVEFILE_JSON.window.leaflet.center ) {
+	    if ( GH_CONFIGFILE_JSON.window.leaflet.center ) {
 		let p = new L.LatLng(
-		    parseFloat(GH_SAVEFILE_JSON.window.leaflet.center.lat),
-		    parseFloat(GH_SAVEFILE_JSON.window.leaflet.center.lng)
+		    parseFloat(GH_CONFIGFILE_JSON.window.leaflet.center.lat),
+		    parseFloat(GH_CONFIGFILE_JSON.window.leaflet.center.lng)
 		);
 		GH_M.setView(p,GH_M.getZoom());
 	    }
 
-	    if ( GH_SAVEFILE_JSON.window.leaflet.isOpen ) {
+	    if ( GH_CONFIGFILE_JSON.window.leaflet.isOpen ) {
 		$('#ghLeafletDialog').dialog('open');
 	    } else {
 		$('#ghLeafletDialog').dialog('close');
@@ -3986,10 +4014,10 @@ function ghSetWindowConfig() {
 
 	//////////////////////
 	//  Cesium Parameter
-	if ( GH_SAVEFILE_JSON.window.cesium.size ) {
+	if ( GH_CONFIGFILE_JSON.window.cesium.size ) {
 	    window.resizeTo(
-		parseInt(GH_SAVEFILE_JSON.window.cesium.size.width,10),
-		parseInt(GH_SAVEFILE_JSON.window.cesium.size.height,10)
+		parseInt(GH_CONFIGFILE_JSON.window.cesium.size.width,10),
+		parseInt(GH_CONFIGFILE_JSON.window.cesium.size.height,10)
 	    );
 	}
 	
@@ -4000,27 +4028,27 @@ function ghSetParamConfig() {
 
     ////////////////////////////
     // param configure
-    if ( GH_SAVEFILE_JSON.param ) {
+    if ( GH_CONFIGFILE_JSON.param ) {
 
 	/////////////////////////
 	// Menu bar
-	if ( GH_SAVEFILE_JSON.param.menubar ) {
+	if ( GH_CONFIGFILE_JSON.param.menubar ) {
 
 	    ////////////////////////
 	    // 3D prop
-	    if ( GH_SAVEFILE_JSON.param.menubar.threedprop ) {
-		if ( GH_SAVEFILE_JSON.param.menubar.threedprop.quality ) {
-		    let val = parseInt(GH_SAVEFILE_JSON.param.menubar.threedprop.quality,10);
+	    if ( GH_CONFIGFILE_JSON.param.menubar.threedprop ) {
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.quality ) {
+		    let val = parseInt(GH_CONFIGFILE_JSON.param.menubar.threedprop.quality,10);
 		    $('#qualityslider').val(val),
 		    ghSetCesiumQuality( val );
 		}
-		if ( GH_SAVEFILE_JSON.param.menubar.threedprop.tilecachesize ) {
-		    let val = parseInt(GH_SAVEFILE_JSON.param.menubar.threedprop.tilecachesize,10);
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.tilecachesize ) {
+		    let val = parseInt(GH_CONFIGFILE_JSON.param.menubar.threedprop.tilecachesize,10);
 		    $( '#tilecachesizeslider' ).val(val);
 		    ghSetCesiumCacheSize(val);
 		}
 
-		if ( GH_SAVEFILE_JSON.param.menubar.threedprop.enabletunnel ) {
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.enabletunnel ) {
 		    ghEnableCesiumTunnel( true );
 		    $('#tunnelcheckbox').prop('checked', true);
 		} else {
@@ -4029,10 +4057,10 @@ function ghSetParamConfig() {
 		}
 
 
-		if ( GH_SAVEFILE_JSON.argument.gt ) {
+		if ( GH_CONFIGFILE_JSON.argument.gt ) {
 		    // NOP
 		} else {
-		    if ( GH_SAVEFILE_JSON.param.menubar.threedprop.enable3dobject ) {
+		    if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.enable3dobject ) {
 			ghEnableCesium3Dtile( true );
 			$('#tile3dcheckbox').prop('checked', true);
 		    } else {
@@ -4046,10 +4074,10 @@ function ghSetParamConfig() {
 
 	    ////////////////////////
 	    // Cameraprop
-	    if ( GH_SAVEFILE_JSON.param.menubar.cameraprop ) {
+	    if ( GH_CONFIGFILE_JSON.param.menubar.cameraprop ) {
 
 
-		if ( GH_SAVEFILE_JSON.param.menubar.cameraprop.autocamera ) {
+		if ( GH_CONFIGFILE_JSON.param.menubar.cameraprop.autocamera ) {
 		    $( '#autocameracheckbox').prop('checked', true);
 		    ghEnableAutoCamera( true );
 		} else {
@@ -4057,28 +4085,52 @@ function ghSetParamConfig() {
 		    ghEnableAutoCamera( false );
 		}
 
-		if ( GH_SAVEFILE_JSON.param.menubar.cameraprop.cameraminutes ) {
-		    let val = parseInt(GH_SAVEFILE_JSON.param.menubar.cameraprop.cameraminutes,10);
+		if ( GH_CONFIGFILE_JSON.param.menubar.cameraprop.cameraminutes ) {
+		    let val = parseInt(GH_CONFIGFILE_JSON.param.menubar.cameraprop.cameraminutes,10);
 		    $( '#autocameraminutes').val(val);
 		    ghSetAutoCameraInterval( $('#autocameraminutes').val() );
 		}
 	    }
+
+
+	    ////////////////////////
+	    // Weather
+	    if ( GH_CONFIGFILE_JSON.param.menubar.weatherprop ) {
+		if ( GH_CONFIGFILE_JSON.param.menubar.weatherprop.weather ) {
+		    let w = GH_CONFIGFILE_JSON.param.menubar.weatherprop.weather;
+		    let val = 5; // Default 5
+		    if ( GH_CONFIGFILE_JSON.param.menubar.weatherprop.density ) {
+			val = parseInt(GH_CONFIGFILE_JSON.param.menubar.weatherprop.density,10);
+		    }
+		    if ( w == "rain" ) {
+			$('input:radio[name="cesiumweather"][value="rain"]').prop('checked', true);
+		    } else if ( w == "cloud" ) {
+			$('input:radio[name="cesiumweather"][value="cloud"]').prop('checked', true);
+		    } else {
+			$('input:radio[name="cesiumweather"][value="sunny"]').prop('checked', true);
+		    }
+		    $( '#gh_rainslider').val(val);
+		    ghSetCesiumWeather( w, val );
+		}
+
+	    }
+
 
 	}
 	
 	
 	/////////////////////////
 	// Status bar
-	if ( GH_SAVEFILE_JSON.param.statusbar ) {
+	if ( GH_CONFIGFILE_JSON.param.statusbar ) {
 
-	    if ( GH_SAVEFILE_JSON.param.statusbar.multiplier ) {
-		$('#ghcesiummultiplier').val( parseInt( GH_SAVEFILE_JSON.param.statusbar.multiplier , 10 ) );
+	    if ( GH_CONFIGFILE_JSON.param.statusbar.multiplier ) {
+		$('#ghcesiummultiplier').val( parseInt( GH_CONFIGFILE_JSON.param.statusbar.multiplier , 10 ) );
 		ghSetCesiumMultiplier( $('#ghcesiummultiplier').val() );
 	    }
 
-	    if ( GH_SAVEFILE_JSON.param.statusbar.timestamp ) {
+	    if ( GH_CONFIGFILE_JSON.param.statusbar.timestamp ) {
 		let d = new Date();
-		let str = GH_SAVEFILE_JSON.param.statusbar.timestamp.split(":");
+		let str = GH_CONFIGFILE_JSON.param.statusbar.timestamp.split(":");
 		d.setHours( parseFloat(str[0]) );
 		d.setMinutes( parseFloat(str[1]) );
 		d.setSeconds( parseFloat(str[2]) );			      
