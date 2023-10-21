@@ -4791,7 +4791,7 @@ function ghSetGooglePhotorealistic3D(flag) {
 
 	GH_S.globe.show = false;
     
-	$("#gh3DProperty3DtileCheckbox").hide(); // Not used
+	$("#gh3DProperty3DtileCheckbox").hide(); // need not for this mode
 	$( '#tilecachesizeslider' ).val(2000);  //  Up size cache
 	ghSetCesiumCacheSize(2000);
     } else {
