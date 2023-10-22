@@ -18,7 +18,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.11';
+var GH_REV = 'Revision 6.12';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
 var GH_PHOTOREALISTIC_3DTILE = false;
@@ -142,7 +142,7 @@ var GH_UNIT_WORKER = {
     'ack' : false
 };
 
-var GH_MARKER_SIZE = { 'none' : 0 , 'thin' : 12, 'small' : 12, 'medium' : 24 , 'large' : 48 , 'bold' : 48 };
+var GH_MARKER_SIZE = { 'none' : -1 , 'thin' : 12, 'small' : 12, 'medium' : 24 , 'large' : 48 , 'bold' : 48 };
 var GH_MARKER_PROP = {
     station : {
 	url : '../images/lstationmarker.png',
@@ -331,7 +331,7 @@ function ghInitLeafletMap() {
 		{ label: "Bold", value: ['track','bold'] },
 		{ label: "Medium", value: ['track','medium'] },
 		{ label: "Thin", value: ['track','thin'] },
-		{ label: "Hide", value: ['track','hide'] }
+		{ label: "Hide", value: ['track','none'] }
 	    ]
 	},
 	{
@@ -341,7 +341,7 @@ function ghInitLeafletMap() {
 		{ label: "Large", value: ['station','large'] },
 		{ label: "Medium", value: ['station','medium'] },
 		{ label: "Small", value: ['station','small'] },
-		{ label: "Hide", value: ['station','hide'] }
+		{ label: "Hide", value: ['station','none'] }
 	    ]
 	}
     ];
@@ -575,7 +575,7 @@ function ghInitInputForm() {
 	var id = $(this).prop('id');
 	ghSetCesiumTrackProperty( 'width', $(this).val() );
     } );
-    $( '#gh_trackcolor').change(function(){
+    $( '#trackcolor').change(function(){
 	ghSetCesiumTrackProperty( 'color' , $(this).val() );
     });
 
@@ -597,7 +597,7 @@ function ghInitInputForm() {
 
     $('input[name="cesiumweather"]:radio').change(function(){
 	var radio = $(this).val();
-    	var slider = $( '#gh_rainslider').val();
+    	var slider = $( '#rainslider').val();
 	ghSetCesiumWeather( radio, slider );
     });
     $( 'input[name="raindensity"]' ).change( function () {
@@ -1180,7 +1180,10 @@ function ghEnableCesium3Dtile(flag){
 function ghSetCesiumModelLabelProperty( type, flag , value ) {
     let str = value + "px Arial";
     let y = parseFloat(value);
-    let col = Cesium.Color.fromCssColorString( value );
+    let col = '#008000';
+    if ( str.match(/^#/) ) {
+	col = new Cesium.Color.fromCssColorString( value );
+    }
     for ( var i=0,len=GH_FIELD.units.length; i < len; i++ ) {
 	let entity = GH_V.entities.getById( __ghGetCoachEntityKey( GH_FIELD.units[i].trainid,0) );
 	if ( Cesium.defined( entity ) ) {
@@ -1206,7 +1209,11 @@ function ghSetCesiumStationLabelProperty( type, flag , value) {
     let stations = GH_LAYER.station;
     let str = value + "px Arial";
     let y = parseFloat(value);
-    let col = Cesium.Color.fromCssColorString( value );
+    let col = '#008000';
+    if ( str.match(/^#/) ) {
+	col = new Cesium.Color.fromCssColorString( value );
+    }
+    //let col = Cesium.Color.fromCssColorString( value );
     for(var key in stations ) {
 	let id = 'station_' + key;
 	let entity = GH_V.entities.getById( id );
@@ -1233,12 +1240,14 @@ function ghSetCesiumTrackProperty(type, val) {
     for ( var i=0,ilen=primitives.length; i < ilen; i++ ) {
 	for ( var j=0,jlen=GH_PRIMITIVE_ID.length; j < jlen; j++ ) {
 	    if ( primitives[i].geometryInstances ) {
-		attributes = primitives[i].getGeometryInstanceAttributes(GH_PRIMITIVE_ID[j]);
+		var attributes = primitives[i].getGeometryInstanceAttributes(GH_PRIMITIVE_ID[j]);
 		if ( ( typeof attributes ) === 'undefined' ) {
 		    // NOP
 		} else {
 		    if ( type == 'width' ) {
-			attributes.width = val;
+			let uint8 = new Uint8Array(1);
+			uint8[0] = val;
+			attributes.width = uint8;
 		    } else if ( type == 'color' ) {
 			attributes.color = Cesium.ColorGeometryInstanceAttribute.toValue( Cesium.Color.fromCssColorString( val ) );
 		    } else {
@@ -1970,7 +1979,6 @@ function ghSetViewpoint(ct) {
 //    if ( GH_MDL.model.model ) {
 //	heightreference = GH_MDL.model.model.heightReference.getValue();
 //    }
-    console.log();
     
     let modelMatrix = new Cesium.Matrix4();
     GH_PICK_ENTITY.computeModelMatrix(ct, modelMatrix) ;    
@@ -3413,7 +3421,7 @@ function ghDelayInitializeCzmlScene() {
 	// NOP
     } else {
 	if ( GH_CONFIGFILE_JSON != null ) {
-	    setTimeout( ghSetupConfigData ,997);
+	    setTimeout( ghSetupConfigData ,3011); // Camera flight duration
 	} else {
 	    $('.tooltipped').tooltip('open');
 	}
@@ -3773,7 +3781,12 @@ function ghDownloadConfigData() {
 	"env" : {
 	    "revision" : GH_REV,
 	    "utime" : d.getTime(),
-	    "plathome" : navigator.platform,
+	    "plathome" : window.navigator.plathome,
+	    "agent" : window.navigator.userAgent,
+	    "hw" : window.navigator.hardwareConcurrency,
+	    "language" : window.navigator.language,
+	    "memory" : window.navigator.deviceMemory,
+	    "href" : location.href,
 	    "cesium"  : Cesium.VERSION,
 	    "leaflet" : L.version,
 	    "jquery" : jQuery.fn.jquery
@@ -3828,7 +3841,12 @@ function ghDownloadConfigData() {
 	    "height" : leafletdialog.height
 	},
 	"zoom" : GH_M.getZoom(),
-	"center" : GH_M.getCenter()
+	"center" : GH_M.getCenter(),
+	"markersize" : {
+	    "train" : GH_MARKER_PROP.train.size,
+	    "station" : GH_MARKER_PROP.station.size,
+	    "track" : GH_POLYLINE_PROP.size
+	}
     }
 
     ret.param.statusbar = {
@@ -3855,7 +3873,18 @@ function ghDownloadConfigData() {
 	    "enabletunnel" : $('#tunnelcheckbox').is(':checked'),
 	    "enable3dobject" : $('#tile3dcheckbox').is(':checked')
 	},
-	"modelprop" : null,
+	"modelprop" : {
+	    "modellabel" : $('#modellabelcheckbox').is(':checked'),
+	    "modellabelscale" : $('#modellabelscaleslider').val(),
+	    "modellabelyoffset" : $('#modellabelyoffsetslider').val(),
+	    "modellabelcolor" : $('#modellabelcolor').val(),
+	    "stationlabel" : $('#stationlabelcheckbox').is(':checked'),
+	    "stationlabelscale" : $('#stationlabelscaleslider').val(),
+	    "stationlabelyoffset" : $('#stationlabelyoffsetslider').val(),
+	    "stationlabelcolor" : $('#stationlabelcolor').val(),
+	    "trackwidth" : $('#trackwidthslider').val(),
+	    "trackcolor" : $('#trackcolor').val()
+	},
 	"cameraprop" : {
 	    "autocamera" : $('#autocameracheckbox').is(':checked'),
 	    "cameraminutes" : $('#autocameraminutes').val(),
@@ -3865,7 +3894,7 @@ function ghDownloadConfigData() {
 	},
 	"weatherprop" : {
 	    "weather" : wradio,
-	    "density" : $( '#gh_rainslider').val()
+	    "density" : $( '#rainslider').val()
 	},
 	"seprop" : null
     }
@@ -3886,10 +3915,11 @@ function ghDownloadConfigData() {
 }
 
 function ghSetupConfigData( ) {
-    ghSetWindowConfig();
-    ghSetParamConfig();
+    ghSetupConfigWindow();
     ghOnClickPlayPauseButton(); // Auto play start for viewport
-    setTimeout( ghSetViewportConfig,997);
+    setTimeout( ghSetupConfigStatusbar,997);
+    setTimeout( ghSetupConfigMenubar3D,5813);
+    setTimeout( ghSetupConfigViewport,6211);
 }
     
 function ghUploadConfigData( data ) {
@@ -3903,32 +3933,43 @@ function ghUploadConfigData( data ) {
 	    GH_FIELDINDEX.args = GH_CONFIGFILE_JSON.argument;
 	    ghSetBaseArgument();
 	}
-	//ghSetWindowConfig(); in ghSetupConfigData at ghDelayInitializeCzmlScene() 
-	//ghSetParamConfig(); in ghSetupConfigData at ghDelayInitializeCzmlScene() 
+
+	//ghSetupConfigWindow(); in ghSetupConfigData at ghDelayInitializeCzmlScene() 
+	//ghSetupConfigStatusbar(); in ghSetupConfigData at ghDelayInitializeCzmlScene()
+	//ghSetupConfigMenubar(); in ghSetupConfigData at ghDelayInitializeCzmlScene() 	
 	//ghOnClickPlayPauseButton(); in ghSetupConfigData  at ghDelayInitializeCzmlScene() 
 	
 	$('#gh_routefilemodal').modal('close');
-	alert(outfilename + ' uploaded');
+	//alert(outfilename + ' uploaded');
     } 
     $('#ghstartmodal').modal('close');
 }
 
-function ghSetViewportConfig() {
+function ghSetupConfigViewport() {
 
     ////////////////////////////
     // viewpoint configure
     if ( GH_CONFIGFILE_JSON.viewpoint ) {
+
+	if ( GH_CONFIGFILE_JSON.viewpoint.camdistance ) {
+	    GH_CAM_DISTANCE = parseFloat(GH_CONFIGFILE_JSON.viewpoint.camdistance);
+	}
+	if ( GH_CONFIGFILE_JSON.viewpoint.camalt ) {
+	    GH_CAM_ALT = parseFloat(GH_CONFIGFILE_JSON.viewpoint.camalt);
+	}
+
+
+	let entity = null;
 	if ( GH_CONFIGFILE_JSON.viewpoint.entityid ) {
 	    if ( GH_CONFIGFILE_JSON.viewpoint.entityid == null ) {
 		// NOP
 	    } else {
-		let eid = GH_CONFIGFILE_JSON.viewpoint.entityid;
-		let entity = GH_V.entities.getById( eid );
+		entity = GH_V.entities.getById( GH_CONFIGFILE_JSON.viewpoint.entityid );
 		if ( ( typeof entity ) === 'undefined' ) {
 		    // NOP
+		    entity = null;
 		}  else {
 		    __ghSetPickEntity( entity );
-
 
 		    // For leaflet 
 		    if ( GH_CONFIGFILE_JSON.viewpoint.centering ) {
@@ -3942,15 +3983,34 @@ function ghSetViewportConfig() {
 	    }
 	}
 
-	if ( GH_CONFIGFILE_JSON.viewpoint.camdistance ) {
-	    GH_CAM_DISTANCE = parseFloat(GH_CONFIGFILE_JSON.viewpoint.camdistance);
-	}
-	if ( GH_CONFIGFILE_JSON.viewpoint.camalt ) {
-	    GH_CAM_ALT = parseFloat(GH_CONFIGFILE_JSON.viewpoint.camalt);
-	}
 	if ( GH_CONFIGFILE_JSON.viewpoint.mode ) {
 	    GH_CAM_MODE = parseInt(GH_CONFIGFILE_JSON.viewpoint.mode,10);
 
+	    if ( GH_CAM_MODE == GH_CAM_MODE_TRACKED ) {
+		if ( entity == null ) {
+		    GH_CAM_MODE = GH_CAM_MODE_NONE; // Re-set
+		    GH_V.trackedEntity = null;
+		} else {
+		    if ( GH_CONFIGFILE_JSON.window
+			 && GH_CONFIGFILE_JSON.window.cesium
+			 && GH_CONFIGFILE_JSON.window.cesium.camera ) {
+			let cam = GH_CONFIGFILE_JSON.window.cesium.camera;
+			GH_V.camera.setView({
+			    destination: cam.positionWC,
+			    orientation: {
+				heading : cam.heading,
+				pitch : cam.pitch,
+				roll : cam.roll
+			    }
+			});
+		    } else {
+			// Not camera data
+		    }
+		}
+	    } else {
+		// NOP
+	    }
+	    
 	    $('input:radio[name="viewpoint"]').each(function(index) {
 		if ( $(this).val() == GH_CAM_MODE ) {
 		    $(this).prop('checked', true);
@@ -3966,7 +4026,7 @@ function ghSetViewportConfig() {
     
     
 }
-function ghSetWindowConfig() {
+function ghSetupConfigWindow() {
 
    ////////////////////////////
     // window configure
@@ -4005,6 +4065,26 @@ function ghSetWindowConfig() {
 		GH_M.setView(p,GH_M.getZoom());
 	    }
 
+	    if ( GH_CONFIGFILE_JSON.window.leaflet.markersize ) {
+		if ( GH_CONFIGFILE_JSON.window.leaflet.markersize.train ) {
+		    GH_MARKER_PROP.train.size = parseFloat(GH_CONFIGFILE_JSON.window.leaflet.markersize.train);
+		    ghSetLeafletTrainIconSize(GH_MARKER_PROP.train.size);
+		}
+		if ( GH_CONFIGFILE_JSON.window.leaflet.markersize.station ) {
+		    GH_MARKER_PROP.station.size = parseFloat(GH_CONFIGFILE_JSON.window.leaflet.markersize.station);
+		    ghSetLeafletStationIconSize(GH_MARKER_PROP.station.size);
+		}
+		if ( GH_CONFIGFILE_JSON.window.leaflet.markersize.track ) {
+		    GH_POLYLINE_PROP.size = parseFloat(GH_CONFIGFILE_JSON.window.leaflet.markersize.track);
+		    ghSetLeafletTrackPolylineSize(GH_POLYLINE_PROP.size);
+		}
+		if ( GH_CONFIGFILE_JSON.window.leaflet.markersize.camera ) {
+		    // Not Yet
+		}
+		
+	    }
+
+	    
 	    if ( GH_CONFIGFILE_JSON.window.leaflet.isOpen ) {
 		$('#ghLeafletDialog').dialog('open');
 	    } else {
@@ -4024,7 +4104,7 @@ function ghSetWindowConfig() {
     }
 }
 
-function ghSetParamConfig() {
+function ghSetupConfigMenubar3D() {
 
     ////////////////////////////
     // param configure
@@ -4071,9 +4151,26 @@ function ghSetParamConfig() {
 		
 	    }
 
+	}
+	
+    }
+
+    setTimeout( ghSetupConfigMenubarCamera,2111);
+
+}
+function ghSetupConfigMenubarCamera() {
+
+    ////////////////////////////
+    // param configure
+    if ( GH_CONFIGFILE_JSON.param ) {
+
+	/////////////////////////
+	// Menu bar
+	if ( GH_CONFIGFILE_JSON.param.menubar ) {
+
 
 	    ////////////////////////
-	    // Cameraprop
+	    // Camera Prop
 	    if ( GH_CONFIGFILE_JSON.param.menubar.cameraprop ) {
 
 
@@ -4092,6 +4189,113 @@ function ghSetParamConfig() {
 		}
 	    }
 
+	}
+	
+    }
+
+    setTimeout( ghSetupConfigMenubarModel,2111);
+
+}
+function ghSetupConfigMenubarModel() {
+
+    ////////////////////////////
+    // param configure
+    if ( GH_CONFIGFILE_JSON.param ) {
+
+	/////////////////////////
+	// Menu bar
+	if ( GH_CONFIGFILE_JSON.param.menubar ) {
+
+	    ////////////////////////
+	    // Model Prop
+	    if ( GH_CONFIGFILE_JSON.param.menubar.modelprop ) {
+
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabel ) {
+		    $( '#modellabelcheckbox').prop('checked', true);
+		    ghSetCesiumModelLabelProperty( 'show' , true , '#008000' );
+		} else {
+		    $( '#modellabelcheckbox').prop('checked', false);
+		    ghSetCesiumModelLabelProperty( 'show' , false , '#008000' );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabelscale ) {
+		    let val = parseFloat(GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabelscale);
+		    $( '#modellabelscaleslider').val(val);
+		    ghSetCesiumModelLabelProperty( 'scale', false, val );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabelyoffset ) {
+		    let val = parseFloat(GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabelyoffset);
+		    $( '#modellabelyoffsetslider').val(val);
+		    ghSetCesiumModelLabelProperty( 'yoffset', false, val );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabelcolor ) {
+		    let val = GH_CONFIGFILE_JSON.param.menubar.modelprop.modellabelcolor;
+		    $( '#modellabelcolor').val(val);
+		    ghSetCesiumModelLabelProperty( 'color', false, val );
+		}
+
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabel ) {
+		    $( '#stationlabelcheckbox').prop('checked', true);
+		    ghSetCesiumStationLabelProperty( 'show' , true , '#008000' );
+		} else {
+		    $( '#stationlabelcheckbox').prop('checked', false);
+		    ghSetCesiumStationLabelProperty( 'show' , false , '#008000' );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabelscale ) {
+		    let val = parseFloat(GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabelscale);
+		    $( '#stationlabelscaleslider').val(val);
+		    ghSetCesiumStationLabelProperty( 'scale', false, val );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabelyoffset ) {
+		    let val = parseFloat(GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabelyoffset);
+		    $( '#stationlabelyoffsetslider').val(val);
+		    ghSetCesiumStationLabelProperty( 'yoffset', false, val );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabelcolor ) {
+		    let val = GH_CONFIGFILE_JSON.param.menubar.modelprop.stationlabelcolor;
+		    $( '#stationlabelcolor').val(val);
+		    ghSetCesiumStationLabelProperty( 'color', false, val );
+		}
+
+		
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.trackcolor ) {
+		    let val = GH_CONFIGFILE_JSON.param.menubar.modelprop.trackcolor;
+		    $( '#trackcolor').val(val);
+		    ghSetCesiumTrackProperty( 'color', val );
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.modelprop.trackwidth ) {
+		    let val = parseFloat(GH_CONFIGFILE_JSON.param.menubar.modelprop.trackwidth);
+		    $( '#trackwidthslider').val(val);
+		    ghSetCesiumTrackProperty( 'width', val );
+		}
+
+		
+	    }
+
+	}
+	
+    }
+
+    setTimeout( ghSetupConfigMenubarWeather,2111);
+
+}
+function ghSetupConfigMenubarWeather() {
+
+    ////////////////////////////
+    // param configure
+    if ( GH_CONFIGFILE_JSON.param ) {
+
+	/////////////////////////
+	// Menu bar
+	if ( GH_CONFIGFILE_JSON.param.menubar ) {
 
 	    ////////////////////////
 	    // Weather
@@ -4109,7 +4313,7 @@ function ghSetParamConfig() {
 		    } else {
 			$('input:radio[name="cesiumweather"][value="sunny"]').prop('checked', true);
 		    }
-		    $( '#gh_rainslider').val(val);
+		    $( '#rainslider').val(val);
 		    ghSetCesiumWeather( w, val );
 		}
 
@@ -4118,7 +4322,16 @@ function ghSetParamConfig() {
 
 	}
 	
-	
+    }
+
+}
+
+function ghSetupConfigStatusbar() {
+
+    ////////////////////////////
+    // param configure
+    if ( GH_CONFIGFILE_JSON.param ) {
+
 	/////////////////////////
 	// Status bar
 	if ( GH_CONFIGFILE_JSON.param.statusbar ) {
@@ -4310,7 +4523,6 @@ function ghCreateCesiumGroundPolyline(polyline,attr) {
 
 
 function ghSetLeafletTrainIconSize(size) {
-    GH_MARKER_PROP.train.size = GH_MARKER_SIZE[size];
     for(var key in GH_LAYER.train){
 	if ( GH_M.hasLayer(GH_LAYER.train[key]) ) {
 	    // NOP
@@ -4321,14 +4533,13 @@ function ghSetLeafletTrainIconSize(size) {
     }
 }
 function ghSetLeafletTrackPolylineSize(size) {
-    if ( size == "hide" ) {
+    if ( size < 1 ) {
 	for ( var key in GH_LAYER.polyline ) {
 	    if ( GH_M.hasLayer(GH_LAYER.polyline[key]) ) {
 		GH_M.removeLayer(GH_LAYER.polyline[key]);
 	    }
 	}
     } else {
-	GH_POLYLINE_PROP.size = ( GH_MARKER_SIZE[ size ] / 4 ) |0;
 	for ( var key in GH_LAYER.polyline ) {
 	    if ( GH_M.hasLayer(GH_LAYER.polyline[key]) ) {
 		// NOP
@@ -4340,15 +4551,13 @@ function ghSetLeafletTrackPolylineSize(size) {
     }
 }
 function ghSetLeafletStationIconSize(size) {
-
-    if ( size == "hide" ) {
+    if ( size < 1  ) {
 	for ( var key in GH_LAYER.station ) {
 	    if ( GH_M.hasLayer(GH_LAYER.station[key]) ) {
 		GH_M.removeLayer(GH_LAYER.station[key]);
 	    }
 	}
     } else {
-	GH_MARKER_PROP.station.size = GH_MARKER_SIZE[size];
 	for ( var key in GH_LAYER.station ) {
 	    if ( GH_M.hasLayer(GH_LAYER.station[key]) ) {
 		// NOP
@@ -4362,11 +4571,14 @@ function ghSetLeafletStationIconSize(size) {
 }
 function ghSetLeafletLayerSize(type,size) {
     if ( type == 'train' ) {
-	ghSetLeafletTrainIconSize(size);
+	GH_MARKER_PROP.train.size = GH_MARKER_SIZE[size];
+	ghSetLeafletTrainIconSize(GH_MARKER_PROP.train.size);
     } else if (  type == 'track' ) {
-	ghSetLeafletTrackPolylineSize(size);
+	GH_POLYLINE_PROP.size = ( GH_MARKER_SIZE[ size ] / 4 ) |0;
+	ghSetLeafletTrackPolylineSize(GH_POLYLINE_PROP.size);
     } else if (  type == 'station' ) {
-	ghSetLeafletStationIconSize(size);
+	GH_MARKER_PROP.station.size = GH_MARKER_SIZE[size];
+	ghSetLeafletStationIconSize(GH_MARKER_PROP.station.size);
     } else {
 	// NOP
     }
