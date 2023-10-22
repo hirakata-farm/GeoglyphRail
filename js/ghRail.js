@@ -3817,6 +3817,11 @@ function ghCreateConfigData(id) {
 	}
     }
 
+    // Remove 'cf' argument  for recursive error
+    if ( ret.argument.cf ) {
+	delete ret.argument.cf;
+    }
+    
     if ( GH_PICK_ENTITY ) {
 	ret.viewpoint.entityid = GH_PICK_ENTITY._id;
     }
@@ -3857,9 +3862,14 @@ function ghCreateConfigData(id) {
 	}
     }
 
+    let timestamp = $('#timedescription').html().split(":");
     ret.param.statusbar = {
 	"multiplier" : ghGetStatusbarMultiplier(),
-	"timestamp" : $('#timedescription').html()
+	"timestamp" : {
+	    "hour" : timestamp[0],
+	    "min" : timestamp[1],
+	    "sec" : timestamp[2]
+	}
     }
 
     let wradio = "sunny"; // Default
@@ -3916,7 +3926,7 @@ function ghDownloadConfigData() {
     ret = ghCreateConfigData(d.getTime());
     
     let dstr = d.toString().replace(/\s+/g,'_');
-    let outfilename = "geoglyphrail_" + dstr + ".ghjson";
+    let outfilename = "GH_" + ret.argument.tc + "_" + ret.param.statusbar.timestamp.hour +  ret.param.statusbar.timestamp.min + ret.param.statusbar.timestamp.sec + "_" + dstr + ".ghjson";
 
     let download = document.createElement("a");
     document.body.appendChild(download);
@@ -3944,8 +3954,8 @@ function ghSaveConfigData() {
         data: JSON.stringify(ret)
     }).done(function(data) {
         let saveurl = location.href;
-	saveurl.substring(0,saveurl.indexOf("?"));      // remove ? argument
-	saveurl = saveurl + "?cf=" + GH_CONFIGFILE_ID;  //  Configdata Param
+	saveurl = saveurl.substring(0,saveurl.indexOf("?"));     // remove ? argument
+	saveurl = saveurl + "?cf=" + GH_CONFIGFILE_ID;           //  Configdata Param
         //$("#gh_save_config_message").html(saveurl.replace('#!', ''));
 	$("#gh_save_config_message").val( saveurl.replace('#!', '') );
         $("#gh_save_config_button").html("OK. share above URL link");
@@ -4184,9 +4194,48 @@ function ghSetupConfigMenubar3D() {
 		    $('#tunnelcheckbox').prop('checked', false);
 		}
 
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.enablesun ) {
+		    ghEnableCesiumSunEffect( true );
+		    $('#lightingcheckbox').prop('checked', true);
+		} else {
+		    ghEnableCesiumSunEffect( false );
+		    $('#lightingcheckbox').prop('checked', false);
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.showspeedometer ) {
+		    ghShowCesiumSpeedoMeter( true );
+		    $('#speedmetercheckbox').prop('checked', true);
+		} else {
+		    ghShowCesiumSpeedoMeter( false );
+		    $('#speedmetercheckbox').prop('checked', false);
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.showframerate ) {
+		    ghShowCesiumFPS( true );
+		    $('#frameratecheckbox').prop('checked', true);
+		} else {
+		    ghShowCesiumFPS( false );
+		    $('#frameratecheckbox').prop('checked', false);
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.showtilequeue ) {
+		    ghShowCesiumTileQueue( true );
+		    $('#tilequeuecheckbox').prop('checked', true);
+		} else {
+		    ghShowCesiumTileQueue( false );
+		    $('#tilequeuecheckbox').prop('checked', false);
+		}
+
+		if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.enablewater ) {
+		    ghEnableCesiumWaterEffect( true ) ;
+		    $('#watercheckbox').prop('checked', true);
+		} else {
+		    ghEnableCesiumWaterEffect( false ) ;
+		    $('#watercheckbox').prop('checked', false);
+		}
 
 		if ( GH_CONFIGFILE_JSON.argument.gt ) {
-		    // NOP
+		    // NOP for Google Photorealistic 3D
 		} else {
 		    if ( GH_CONFIGFILE_JSON.param.menubar.threedprop.enable3dobject ) {
 			ghEnableCesium3Dtile( true );
@@ -4391,10 +4440,10 @@ function ghSetupConfigStatusbar() {
 
 	    if ( GH_CONFIGFILE_JSON.param.statusbar.timestamp ) {
 		let d = new Date();
-		let str = GH_CONFIGFILE_JSON.param.statusbar.timestamp.split(":");
-		d.setHours( parseFloat(str[0]) );
-		d.setMinutes( parseFloat(str[1]) );
-		d.setSeconds( parseFloat(str[2]) );			      
+		//let str = GH_CONFIGFILE_JSON.param.statusbar.timestamp.split(":");
+		d.setHours( parseFloat( GH_CONFIGFILE_JSON.param.statusbar.timestamp.hour ) );
+		d.setMinutes( parseFloat( GH_CONFIGFILE_JSON.param.statusbar.timestamp.min ) );
+		d.setSeconds( parseFloat( GH_CONFIGFILE_JSON.param.statusbar.timestamp.sec ) );			      
 		let ts = d.getTime();
 		let ts_before = ts - ( 1000 * 60 * 1 ); // before 1 min
 		let d_before = new Date(ts_before);
