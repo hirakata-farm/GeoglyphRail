@@ -397,16 +397,25 @@
 	<a href="rail2map.html" class="ui medium rounded image"><i class="material-icons left">new_releases</i>New data<BR>
           <img src="../images/linemap.jpg" style="width:280px;height:144px;"></a>
 	  <!--  <i class="material-icons">launch</i><span data-t="modal.selectmap"></span> -->
-
-	<!--   test -->
 	<BR>
-	<div id="gh_loaddata_content">
-	  <a id="gh_loaddatahref" href="#"><i class="material-icons left">file_upload</i><input type="file" id="gh_loaddata" onchange="ghUploadConfigData( this );" accept=".ghjson">Load data</a>
+	<!--   for local -->
+	<div id="gh_uploadconfigdata_content">
+	  <a id="gh_uploadconfigdatahref" href="#"><i class="material-icons left">file_upload</i><input type="file" id="gh_loaddata" onchange="ghUploadConfigData( this );" accept=".ghjson">Upload configure</a>
 	</div>
+	<div id="gh_downloadconfigdata_content">
+	  <a id="gh_downloadconfigdata" href="#"><i class="material-icons left">file_download</i>Download configure</a>
+	</div>
+	<!--   for local -->
 	<BR>
-	<div id="gh_savedata_content">
-	  <a id="gh_savedata" href="#"><i class="material-icons left">file_download</i>Save data</a>
+	<!--   for www  -->
+	<div id="gh_saveconfigdata_content">
+          <input id="gh_save_config_message" type="text" class="validate">
+          <!--  <div id="gh_save_config_message"></div> -->
+          <div id="gh_save_config_button"><button id="configsavebutton"><i class="material-icons left">save</i>save configure..</button></div>
+          <input id="gh_save_config_data" type="hidden">
 	</div>
+	<!--   for wwwl -->
+	
       </div>
       <!--
       <div class="modal-footer">

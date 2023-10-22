@@ -235,6 +235,10 @@ var GH_TRAIN_LABEL_Y_OFFSET = 20;
 
 var GH_CONFIGFILE_JSON = null;
 
+const GH_CONFIGFILE_CGI = "//earth.geoglyph.info/cgi/saverailconfigure.php";
+const GH_CONFIGFILE_URI = "//earth.geoglyph.info/rail/configure/"
+var GH_CONFIGFILE_ID = 'XXXXXXXXXXXXXXXXXXX';
+
 ///////////////////////////////
 //  Check Local Console
 if ( location.hostname.match(/^192/) ) {
@@ -621,8 +625,12 @@ function ghInitInputForm() {
 	ghOnClickViewpointButton( $(this).val() );
     });
 
-    $( '#gh_savedata').click(function(){
+    $( '#gh_downloadconfigdata').click(function(){
 	ghDownloadConfigData();
+    });
+
+    $('#configsavebutton').on('click', function() {
+	ghSaveConfigData();
     });
 
     
@@ -3269,17 +3277,18 @@ function ghSetAboutModalContent() {
 
 function ghSetStartModalContent() {
     if ( GH_LOCAL_CONSOLE ) {
-	$("#gh_loaddata_content").show();
-	$("#gh_savedata_content").show();
-//	if ( GH_FIELDINDEX.args == null ) {
-//	    $("#gh_loaddata_content").show();
-//	} else {
-//	    if ( GH_FIELDINDEX.args.tc ) {
-//		$("#gh_savedata_content").show();
-//	    } else {
-//		$("#gh_loaddata_content").show();
-//	    }
-//	}
+	$("#gh_uploadconfigdata_content").show();
+	$("#gh_downloadconfigdata_content").show();
+    } else {
+	if ( GH_FIELDINDEX.args == null ) {
+	    $("#gh_saveconfigdata_content").hide();
+	} else { 
+	    if ( GH_FIELDINDEX.args.tc ) {
+		$("#gh_saveconfigdata_content").show();
+	    } else {
+		$("#gh_saveconfigdata_content").hide();
+	    }
+	}
     }
 };
 
@@ -3774,13 +3783,12 @@ function ghResizeWindow() {
     
 }
 /////////////////////////////////////////
-function ghDownloadConfigData() {
-    let d = new Date();
+function ghCreateConfigData(id) {
 
     let ret = {
 	"env" : {
 	    "revision" : GH_REV,
-	    "utime" : d.getTime(),
+	    "id" : id,
 	    "plathome" : window.navigator.plathome,
 	    "agent" : window.navigator.userAgent,
 	    "hw" : window.navigator.hardwareConcurrency,
@@ -3898,6 +3906,14 @@ function ghDownloadConfigData() {
 	},
 	"seprop" : null
     }
+    return ret;
+}
+
+
+function ghDownloadConfigData() {
+    let d = new Date();
+    let ret = null;
+    ret = ghCreateConfigData(d.getTime());
     
     let dstr = d.toString().replace(/\s+/g,'_');
     let outfilename = "geoglyphrail_" + dstr + ".ghjson";
@@ -3912,6 +3928,38 @@ function ghDownloadConfigData() {
     $('#ghstartmodal').modal('close');
     alert(outfilename + ' downloaded');
     
+}
+function ghSaveConfigData() {
+    
+    let d = new Date();
+    GH_CONFIGFILE_ID = ghBroadcastGetUniqueID() + d.getTime();
+    let ret = null;
+    ret = ghCreateConfigData(GH_CONFIGFILE_ID);
+
+    $.ajax({
+        type: "POST",
+        url: GH_CONFIGFILE_CGI,
+        contentType: "Content-Type: application/json; charset=UTF-8",
+        dataType: "json",   
+        data: JSON.stringify(ret)
+    }).done(function(data) {
+        let saveurl = location.href;
+	saveurl.substring(0,saveurl.indexOf("?"));      // remove ? argument
+	saveurl = saveurl + "?cf=" + GH_CONFIGFILE_ID;  //  Configdata Param
+        //$("#gh_save_config_message").html(saveurl.replace('#!', ''));
+	$("#gh_save_config_message").val( saveurl.replace('#!', '') );
+        $("#gh_save_config_button").html("OK. share above URL link");
+
+	//  https://earth.geoglyph.info/rail/en/rail3m.html?tc=481NS?cf=18b55c7170f1b21697951192847
+	
+    }).fail(function(XMLHttpRequest, textStatus,errorThrown){
+        var msg = "Cannot save data error ";
+        msg += " XMLHttpRequest " + XMLHttpRequest.status ;
+        msg += " textStatus " + textStatus ;
+	console.log( msg );
+    });
+
+
 }
 
 function ghSetupConfigData( ) {
@@ -5059,6 +5107,7 @@ function ghSetBaseArgument() {
 
 	//  tc = train code
 	//
+	//  cf = configure data
 	//
 	//  gt = Google 3D tile ( photorealistic 3D tile )
 	//       default false
@@ -5099,26 +5148,44 @@ function ghSetBaseArgument() {
 	    $("#ghstoptimerinput").hide();
 	}
 
+	if ( GH_FIELDINDEX.args.cf ) {
 
-	if ( GH_FIELDINDEX.args.tc ) {
-	    if ( GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc] ) {
-		if ( GH_PHOTOREALISTIC_3DTILE ) {
-		    //Delay for google 
-		    setTimeout( ghLoadFieldData, 495, ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file) );
+	    let uri = GH_CONFIGFILE_URI + GH_FIELDINDEX.args.cf + ".json";
+	    $.ajax({
+		dataType: "json",
+		url: uri
+	    }).done(function(data) {
+		GH_CONFIGFILE_JSON = data;
+		if ( GH_CONFIGFILE_JSON.argument ) {
+		    GH_FIELDINDEX.args = GH_CONFIGFILE_JSON.argument;
+		    ghSetBaseArgument();
+		}
+	    }).fail(function(XMLHttpRequest, textStatus,errorThrown){
+		var msg = "configure data cannot load ";
+		msg += " XMLHttpRequest " + XMLHttpRequest.status ;
+		msg += " textStatus " + textStatus ;
+		console.log( msg );
+	    });
+
+	} else {
+	    if ( GH_FIELDINDEX.args.tc ) {
+		if ( GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc] ) {
+		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+			//Delay for google 
+			setTimeout( ghLoadFieldData, 495, ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file) );
+		    } else {
+			ghLoadFieldData(
+			    ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file)
+			);
+		    }
 		} else {
-		    ghLoadFieldData(
-			ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file)
-		    );
+		    console.log('Wrong code parameter ' + GH_FIELDINDEX.args.tc);
+		    $('#ghstartmodal').modal('open');
 		}
 	    } else {
-		console.log('Wrong code parameter ' + GH_FIELDINDEX.args.tc);
 		$('#ghstartmodal').modal('open');
 	    }
-	} else {
-	    $('#ghstartmodal').modal('open');
 	}
-
-	
     }
 }
 
@@ -5146,7 +5213,6 @@ $(document).ready(function(){
     //
     ghLoadFieldIndex();
 
-
     //
     ghInitDialog();
 
@@ -5165,10 +5231,11 @@ $(document).ready(function(){
     //  show 'play'
     ghChangePlayPauseButton(false);
 
-    //  load save button ( test )
-    $("#gh_loaddata_content").hide();
-    $("#gh_savedata_content").hide();
-
+    //  default hide
+    // load save button ( test )
+    $("#gh_uploadconfigdata_content").hide();
+    $("#gh_downloadconfigdata_content").hide();
+    $("#gh_saveconfigdata_content").hide();    
 
     // Bottom status bar position
     $(window).resize(ghResizeWindow);
