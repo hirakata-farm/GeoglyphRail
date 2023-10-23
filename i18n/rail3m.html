@@ -108,7 +108,8 @@
         </ul>
         <ul class="right">
 	  <!--
-          <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li> -->
+              <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li> -->
+	  <li><a class="waves-effect waves-light modal-trigger" href="#ghsharemodal"><i class="material-icons">share</i></a></li>
           <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
           <li><a class="waves-effect waves-light modal-trigger" href="#ghaboutmodal"><i class="material-icons">help_outline</i></a></li>
         </ul>
@@ -392,30 +393,12 @@
     <!-- Sound Effect Dialog -->
     
     <!-- Start Modal Structure -->
-    <div id="ghstartmodal" class="modal" style="height:380px;width:380px;">
+    <div id="ghstartmodal" class="modal" style="height:320px;width:380px;">
       <div class="modal-content">
-	<a href="rail2map.html" class="ui medium rounded image"><i class="material-icons left">new_releases</i>New data<BR>
+	<a href="rail2map.html" class="ui medium rounded image"><i class="material-icons left">new_releases</i><span data-t>navigator.new</span><BR>
           <img src="../images/linemap.jpg" style="width:280px;height:144px;"></a>
-	  <!--  <i class="material-icons">launch</i><span data-t="modal.selectmap"></span> -->
+	  <span data-t="modal.selectmap"></span>
 	<BR>
-	<!--   for local -->
-	<div id="gh_uploadconfigdata_content">
-	  <a id="gh_uploadconfigdatahref" href="#"><i class="material-icons left">file_upload</i><input type="file" id="gh_loaddata" onchange="ghUploadConfigData( this );" accept=".ghjson">Upload configure</a>
-	</div>
-	<div id="gh_downloadconfigdata_content">
-	  <a id="gh_downloadconfigdata" href="#"><i class="material-icons left">file_download</i>Download configure</a>
-	</div>
-	<!--   for local -->
-	<BR>
-	<!--   for www  -->
-	<div id="gh_saveconfigdata_content">
-          <input id="gh_save_config_message" type="text" class="validate">
-          <!--  <div id="gh_save_config_message"></div> -->
-          <div id="gh_save_config_button"><button id="configsavebutton"><i class="material-icons left">save</i>save configure..</button></div>
-          <input id="gh_save_config_data" type="hidden">
-	</div>
-	<!--   for wwwl -->
-	
       </div>
       <!--
       <div class="modal-footer">
@@ -449,10 +432,52 @@
 	<div id="gh_aboutcontent"></div>
       </div>
       <div class="modal-footer" style="background:#424242;color:#b0bec5;">
-        <i class="material-icons">copyright</i>2023 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat">OK</a>
+        <i class="material-icons">copyright</i>2023 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat"><span data-t="modal.ok"></span></a>
       </div>
     </div>        
     <!-- About Modal Structure -->        
+
+    <!-- Share Modal Structure -->
+    <div id="ghsharemodal" class="modal" style="background:#424242;color:#b0bec5;">
+      <div class="modal-content">
+
+	<!--   for www  -->
+	<div id="gh_saveconfigdata_content">
+          <input id="gh_save_config_message" type="text" class="validate">
+          <!--  <div id="gh_save_config_message"></div> -->
+          <div id="gh_save_config_button"><button id="configsavebutton"><i class="material-icons left">save</i>share configure..</button></div>
+          <input id="gh_save_config_data" type="hidden">
+	</div>
+	<!--   for wwwl -->
+	<BR>
+	<!--   for local -->
+	<div id="gh_uploadconfigdata_content">
+	  <a id="gh_uploadconfigdatahref" href="#"><i class="material-icons left">file_upload</i><input type="file" id="gh_loaddata" onchange="ghUploadConfigData( this );" accept=".ghjson">Upload configure</a>
+	</div>
+	<BR>
+	<div id="gh_downloadconfigdata_content">
+	  <a id="gh_downloadconfigdata" href="#"><i class="material-icons left">file_download</i>Download configure</a>
+	</div>
+	<BR>
+	<div id="gh_downloadcapture_content">
+	  <a id="gh_downloadcaptureimage" href="#"><i class="fa fa-file-image-o"></i>Capture</a>
+	</div>
+	<!--   for local -->
+	<BR>
+	<!--   for www  -->
+	<div id="gh_savecaptureimage_content">
+          <input id="gh_save_capture_message" type="text" class="validate">
+          <div id="gh_save_capture_button"><button id="capturesavebutton"><i class="material-icons left">save</i>share capture</button></div>
+          <input id="gh_save_capture_data" type="hidden">
+	</div>
+	<!--   for wwwl -->
+
+	</div>
+      <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+        <a href="#!" class="modal-close yellow btn-flat"><span data-t="modal.ok"></span></a>
+      </div>
+    </div>        
+    <!-- Share Modal Structure -->        
 
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
     <ins class="adsbygoogle"
