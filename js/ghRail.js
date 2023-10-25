@@ -234,10 +234,15 @@ var GH_PRIMITIVE_ID = [];
 var GH_TRAIN_LABEL_Y_OFFSET = 20;
 
 var GH_CONFIGFILE_JSON = null;
+const GH_CONFIGFILE_URI = '//earth.geoglyph.info/rail/configure/';
+const GH_SHARE_CGI = {
+    'config' : "//earth.geoglyph.info/cgi/railconfigure.php",
+    'captureimage' : "//earth.geoglyph.info/cgi/railcaptureimage.php",
+    'captureprop' : "//earth.geoglyph.info/cgi/railcaptureprop.php"
+}
 
-const GH_CONFIGFILE_CGI = "//earth.geoglyph.info/cgi/saverailconfigure.php";
-const GH_CONFIGFILE_URI = "//earth.geoglyph.info/rail/configure/"
 var GH_CONFIGFILE_ID = 'XXXXXXXXXXXXXXXXXXX';
+var GH_CAPTUREFILE_ID = 'XXXXXXXXXXXXXXXXXXX';
 
 ///////////////////////////////
 //  Check Local Console
@@ -635,6 +640,10 @@ function ghInitInputForm() {
 
     $('#configsavebutton').on('click', function() {
 	ghSaveConfigData();
+    });
+
+    $('#capturesavebutton').on('click', function() {
+	ghSaveCaptureImage();
     });
 
     
@@ -3806,22 +3815,25 @@ function ghResizeWindow() {
     
 }
 /////////////////////////////////////////
+function ghGetEnvData(id) {
+    return {
+	"revision" : GH_REV,
+	"id" : id,
+	"timestamp" : new Date().toString(),
+	"plathome" : window.navigator.plathome,
+	"agent" : window.navigator.userAgent,
+	"hw" : window.navigator.hardwareConcurrency,
+	"language" : window.navigator.language,
+	"href" : location.href,
+	"cesium"  : Cesium.VERSION,
+	"leaflet" : L.version,
+	"jquery" : jQuery.fn.jquery
+    }
+}
 function ghCreateConfigData(id) {
 
     let ret = {
-	"env" : {
-	    "revision" : GH_REV,
-	    "id" : id,
-	    "plathome" : window.navigator.plathome,
-	    "agent" : window.navigator.userAgent,
-	    "hw" : window.navigator.hardwareConcurrency,
-	    "language" : window.navigator.language,
-	    "memory" : window.navigator.deviceMemory,
-	    "href" : location.href,
-	    "cesium"  : Cesium.VERSION,
-	    "leaflet" : L.version,
-	    "jquery" : jQuery.fn.jquery
-	},
+	"env" : ghGetEnvData(id),
 	"argument" : GH_FIELDINDEX.args,
 	"cesium" : null,
 	"leaflet" : null,
@@ -3986,7 +3998,7 @@ function ghSaveConfigData() {
 
     $.ajax({
         type: "POST",
-        url: GH_CONFIGFILE_CGI,
+        url: GH_SHARE_CGI.config,
         contentType: "Content-Type: application/json; charset=UTF-8",
         dataType: "json",   
         data: JSON.stringify(ret)
@@ -3997,8 +4009,109 @@ function ghSaveConfigData() {
         //$("#gh_save_config_message").html(saveurl.replace('#!', ''));
 	$("#gh_save_config_message").val( saveurl.replace('#!', '') );
         $("#gh_save_config_button").html("OK. share above URL link");
-
+	$("#gh_save_config_message").focus();
+	
 	//  https://earth.geoglyph.info/rail/en/rail3m.html?tc=481NS?cf=18b55c7170f1b21697951192847
+	
+    }).fail(function(XMLHttpRequest, textStatus,errorThrown){
+        var msg = "Cannot save data error ";
+        msg += " XMLHttpRequest " + XMLHttpRequest.status ;
+        msg += " textStatus " + textStatus ;
+	console.log( msg );
+    });
+}
+
+function __ghBase64ToBlob(base64, mime) 
+{
+    mime = mime || '';
+    var sliceSize = 1024;
+    var byteChars = window.atob(base64);
+    var byteArrays = [];
+
+    for (var offset = 0, len = byteChars.length; offset < len; offset += sliceSize) {
+        var slice = byteChars.slice(offset, offset + sliceSize);
+
+        var byteNumbers = new Array(slice.length);
+        for (var i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+
+        var byteArray = new Uint8Array(byteNumbers);
+
+        byteArrays.push(byteArray);
+    }
+
+    return new Blob(byteArrays, {type: mime});
+}
+
+//https://www.web-dev-qa-db-ja.com/ja/javascript/blob%E3%82%92%E7%94%BB%E5%83%8F%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AB%E5%A4%89%E6%8F%9B/838329639/
+function ghSaveCaptureImage() {
+
+//    alert('Not yet');
+//    return;
+    
+    GH_V.render();/// Important
+    let imgdata = GH_V.canvas.toDataURL('image/jpeg', 0.85);
+    var img64 = imgdata.replace(/^data:image\/(png|jpeg);base64,/, "");
+    var imgBlob = __ghBase64ToBlob(img64, 'image/jpeg');  
+
+    var oReq = new XMLHttpRequest();
+    oReq.open("POST", GH_SHARE_CGI.captureimage, true);
+    oReq.onload = function (e) {
+	if (e.target.status == 200) {
+	    if (e.target.response) {
+		//console.log(e.target.responseTexet);
+		let ret = JSON.parse(e.target.response);
+		console.log(ret);
+		ghSaveCaptureProp(ret);
+	    }
+	} else {
+	    console.log('Response Error');
+	    console.log(e.target);
+	}
+	console.log(e);
+    };
+    oReq.send(imgBlob);
+
+    //$('#ghsharemodal').modal('close');
+    //alert(outfilename + ' downloaded');
+    
+}
+function ghSaveCaptureProp(json) {
+    let d = new Date();
+    GH_CAPTUREFILE_ID = ghBroadcastGetUniqueID() + d.getTime();
+    let timestamp = $('#timedescription').html().split(":");
+    let ret = {
+	"env" : ghGetEnvData(GH_CAPTUREFILE_ID),
+	"tc" : GH_FIELDINDEX.args.tc,
+	"imageid" : json.id,
+	"camera" : {
+	    "position" : GH_V.camera.positionCartographic,
+	    "heading" : GH_V.camera.heading,
+	    "pitch" : GH_V.camera.pitch,
+	    "roll" : GH_V.camera.roll
+	},
+	"timestamp" : {
+	    "hour" : timestamp[0],
+	    "min" : timestamp[1],
+	    "sec" : timestamp[2]
+	}
+    }
+
+    $.ajax({
+        type: "POST",
+        url: GH_SHARE_CGI.captureprop,
+        contentType: "Content-Type: application/json; charset=UTF-8",
+        dataType: "json",   
+        data: JSON.stringify(ret)
+    }).done(function(data) {
+        let url = location.href;
+	url = url.substring(0,url.indexOf("?"));     // remove ? argument
+	url = url.replace('rail3m','rail5view');     // capture file viewer HTML
+	url = url + "?cf=" + GH_CAPTUREFILE_ID;       // Configdata Param
+	$("#gh_save_capture_message").val( url );
+	$("#gh_save_capture_button").html("OK. share above URL link");
+	$("#gh_save_capture_message").focus();
 	
     }).fail(function(XMLHttpRequest, textStatus,errorThrown){
         var msg = "Cannot save data error ";
@@ -4009,7 +4122,6 @@ function ghSaveConfigData() {
 
 
 }
-
 function ghSetupConfigData( ) {
     ghSetupConfigLeaflet();
     ghSetupConfigCesium();    

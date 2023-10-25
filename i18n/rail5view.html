@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html data-attr-t lang-t="attribute.lang">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-56RY29XHWM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-56RY29XHWM');
+    </script>
+    <meta charset="UTF-8">
+    <title>Geoglyph Rail Capture viewer</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" data-attr-t content-t="attribute.desc" lang-t="attribute.lang">
+    <meta name="keywords" data-attr-t content-t="attribute.keywords" lang-t="attribute.lang"/>
+
+    <!-- Jquery -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="../../miniwindow/jquery-ui.min.css">
+    <script src="../../miniwindow/jquery-ui.min.js"></script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+    <script src="../../leaflet/leaflet.geometryutil.js"></script>
+    <script src="../../leaflet/leaflet-arrowheads.js"></script>
+    <script src="../../leaflet/Polyline.encoded.js" charset="utf-8"></script>
+
+    <!-- Materialize -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <style type="text/css">
+      body { padding: 0; margin: 0; }
+      html, body { height: 100%; width: 100%; }
+      #ghLeafletContainer { height: 350px; width:390px; margin-top: -5px; margin-left:-15px; overflow:hidden; }
+      nav, .page-footer { background-color:  #1b1c1d; }
+      .ui-dialog-titlebar { background-color:  #26a69a; }
+      .ui-dialog { z-index: 9999; }
+      nav, .nav-wrapper, li { height: 42px; line-height: 42px; }
+      nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i { height: 42px; line-height: 42px; }
+    </style>
+    
+  </head>
+
+  <body>
+    <nav>
+      <div class="nav-wrapper">
+        <ul class="left">
+          <li><img src="../images/Geoglyph-logo-s-l.png" style="height:38px;"></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+          <li>GeoGlyph Rail Capture Viewer
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <!--
+	  <li id="gh_sheet0item"><a id="gh_sheet0btn"><i class="small material-icons">vertical_align_top</i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>	  
+	  <li id="gh_sheet1item"><a id="gh_sheet1btn"><i class="small material-icons">vertical_align_bottom</i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>	  
+	  -->
+          <!--   <li><a class="waves-effect waves-light modal-trigger" href="#gh_settingmodal"><i class="small material-icons">settings</i></a></li> -->
+          <li><i class="small material-icons left">train</i><span id="gh_lineinformation" style="color:#b0bec5">N/A</span>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+	  <li><i class="small material-icons left">schedule</i><span id="gh_displayclock">00:00</span>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+	  <li>
+            <div class="preloader-wrapper small" id="gh_loader" style="width:16px;height:16px;">
+              <div class="spinner-layer spinner-green-only">
+                <div class="circle-clipper left">
+                  <div class="circle"></div>
+                </div><div class="gap-patch">
+                  <div class="circle"></div>
+                </div><div class="circle-clipper right">
+                  <div class="circle"></div>
+                </div>
+              </div>
+          </div></li>
+        </ul>
+        <ul class="right">
+	  <!--
+              <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li>
+	      -->
+	  <li><a id="ghleafletbtn" title="2D map" class="right"><i class="material-icons">map</i></a>
+          <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
+          <li><a class="waves-effect waves-light modal-trigger" href="#gh_aboutmodal"><i class="material-icons">help_outline</i></a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div id="ghMainImage" style="background-image: url(../images/linemap.jpg);width:100%;height:90%;background-size:contain;"></div>
+
+    <!-- Leaflet Map Dialog -->
+    <div id="ghLeafletDialog" title="Control Map">
+      <div id="ghLeafletContainer"></div>
+    </div>
+    <!-- Leaflet Map Dialog -->
+    
+    <!-- About Modal Structure -->
+    <div id="gh_aboutmodal" class="modal" style="background:#424242;color:#b0bec5;">
+      <div class="modal-content">
+	<img src="../images/Geoglyph-logo-s-l.png">
+	<h4>Geoglyph Rail Capture Viewer</h4>
+	<div id="gh_aboutcontent"></div>
+	<iframe width="420" height="236" src="https://www.youtube.com/embed/1beg4cgcGb8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div class="modal-footer" style="background:#424242;color:#b0bec5;">
+	<i class="material-icons">copyright</i> 2021 Hirakata Farm.&nbsp;&nbsp;&nbsp;&nbsp;<a href="#!" class="modal-close yellow btn-flat" data-t="modal.ok"></a>
+      </div>
+    </div>        
+    <!-- About Modal Structure -->
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <ins class="adsbygoogle"
+	 style="display:block"
+	 data-ad-client="ca-pub-3454291972460940"
+	 data-ad-slot="8905086772"
+	 data-ad-format="auto"></ins>
+    <script>
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+    <script type="text/javascript" src="ghLang.js"></script>
+    <script type="text/javascript" src="../js/ghRailViewer.js"></script>
+  </body>
+</html>
+ 
