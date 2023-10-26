@@ -208,13 +208,16 @@ function _Rad2Deg(radians)
 }
 
 function ghSetupLeafletmap() {
-    let pos = GH_CAPTUREFILE_JSON.camera.position;
+
+    //   Map center for viewpoint position
+    let pos = GH_CAPTUREFILE_JSON.viewpoint.position;
     let c = new L.LatLng(
 	_Rad2Deg(pos.latitude),
 	_Rad2Deg(pos.longitude) 
     );
     GH_M.setView(c,12);
-    
+
+    // Draw train line polygon
     let flist = GH_FIELDINDEX.data.fieldlist;
     let polyary = null;
     for(var key in flist ){
@@ -227,10 +230,11 @@ function ghSetupLeafletmap() {
         ghLoadPolyline( ghGetResourceUri( polyary[j] ) );
     }
 
+    // Draw camera icon
     let iconurl  =  '../images/48x48_camera_icon.png';
     let h = 48;
     let w = 48;
-    var ih = h;
+    var ih = ( h / 2 )|0;
     var iw = ( w / 2 )|0;
     var ph = -1 * iw;
 //    let micon = L.icon({
@@ -254,9 +258,30 @@ function ghSetupLeafletmap() {
 
     let marker = L.marker(c, {icon: micon});
     marker.addTo(GH_M);
+
+    // Draw camera view rectangle
+    const pwidth =  1;
+    const pcolor =  '#FF6666';
+    if ( GH_CAPTUREFILE_JSON.viewpoint.rectangle ) {
+	let rectangle = ghCreateViewRectanglePolygon(GH_CAPTUREFILE_JSON.viewpoint.rectangle,pwidth,pcolor);
+	if ( rectangle != null ) {
+	    rectangle.addTo(GH_M);
+	}
+    }
     
 }
-
+function ghCreateViewRectanglePolygon(rectangle,w,col) {
+    let ret = [];
+    for(let i = 0; i < 4; i++) {
+	let p = L.polyline([ rectangle.camera.latlng, rectangle.polygon.latlngs[i] ]);
+	let camh = rectangle.camera.height - rectangle.camera.altitude
+	if ( camh < 10 ) return null;
+	let ratio = camh / (camh + rectangle.polygon.altitude[i] );
+	let p2 = L.GeometryUtil.interpolateOnLine(GH_M, p, ratio);
+	ret.push([p2.latLng.lat,p2.latLng.lng]);
+    }
+    return new L.polygon(ret,{color: col,fill:false});
+}
 
 //////////////////////////////////////////////////////////////////
 function ghSetupContent() {

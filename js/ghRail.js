@@ -4077,6 +4077,59 @@ function ghSaveCaptureImage() {
     //alert(outfilename + ' downloaded');
     
 }
+function gGetLatlngFromCesiumPoint(w,h,wadd,hadd) {
+    let ray = null;
+    let intersection = null;
+    let point = null;
+    let maxcnt = 20;
+    for(let cnt=0;cnt<maxcnt;cnt++){
+	ray = GH_V.camera.getPickRay(new Cesium.Cartesian2(w,h));
+	intersection = Cesium.IntersectionTests.rayEllipsoid(ray, Cesium.Ellipsoid.WGS84);
+	if ( ( typeof intersection ) === 'undefined' ) {
+	    w = w + wadd;
+	    h = h + hadd;
+	} else {
+	    point = Cesium.Ray.getPoint(ray, intersection.start);
+	    break;
+	}
+    }
+    if ( ( typeof intersection ) === 'undefined' ) {
+	point = Cesium.Cartesian3.ONE
+    }
+    // Radian
+    //return Cesium.Cartographic.fromCartesian(point);
+    let cp = Cesium.Cartographic.fromCartesian(point);
+    let position = new Cesium.Cartographic(cp.longitude, cp.latitude);
+    //let height = GH_S.sampleHeight(position);
+    let height = GH_S.globe.getHeight(position);
+    return [ [Cesium.Math.toDegrees(cp.latitude),Cesium.Math.toDegrees(cp.longitude)], height ];
+}
+function ghGetCameraViewRectangle() {
+    let w = $('#ghCesiumContainer').width();
+    let h = $('#ghCesiumContainer').height();
+    let cam = GH_V.camera.positionCartographic;
+    // cp ( longitude, altitude, height )
+    //let camalt = GH_S.sampleHeight(camp);
+    let camalt = GH_S.globe.getHeight( new Cesium.Cartographic(cam.longitude, cam.latitude) );
+	
+    let nw = gGetLatlngFromCesiumPoint(0,0,10,100);
+    let sw = gGetLatlngFromCesiumPoint(0,h,10,-100);
+    let se = gGetLatlngFromCesiumPoint(w,h,-10,-100);
+    let ne = gGetLatlngFromCesiumPoint(w,0,-10,100);
+    // unit degrees [ lat , lng ] for leaflet
+    //return [nw,sw,se,ne];
+    return {
+	"polygon" : {
+	    "latlngs" : [ nw[0],sw[0],se[0],ne[0] ],
+	    "altitude" : [ nw[1],sw[1],se[1],ne[1] ]
+	},
+	"camera" : {
+	    "latlng" : [ Cesium.Math.toDegrees(cam.latitude),Cesium.Math.toDegrees(cam.longitude) ],
+	    "height" : cam.height,
+	    "altitude" : camalt
+	}
+    }
+}
 function ghSaveCaptureProp(json) {
     let d = new Date();
     GH_CAPTUREFILE_ID = ghBroadcastGetUniqueID() + d.getTime();
@@ -4085,11 +4138,12 @@ function ghSaveCaptureProp(json) {
 	"env" : ghGetEnvData(GH_CAPTUREFILE_ID),
 	"tc" : GH_FIELDINDEX.args.tc,
 	"imageid" : json.id,
-	"camera" : {
+	"viewpoint" : {
 	    "position" : GH_V.camera.positionCartographic,
 	    "heading" : GH_V.camera.heading,
 	    "pitch" : GH_V.camera.pitch,
-	    "roll" : GH_V.camera.roll
+	    "roll" : GH_V.camera.roll,
+	    "rectangle" : ghGetCameraViewRectangle()
 	},
 	"timestamp" : {
 	    "hour" : timestamp[0],
