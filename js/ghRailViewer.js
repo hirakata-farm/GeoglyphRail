@@ -266,7 +266,13 @@ function ghSetupLeafletmap() {
 	let rectangle = ghCreateViewRectanglePolygon(GH_CAPTUREFILE_JSON.viewpoint.rectangle,pwidth,pcolor);
 	if ( rectangle != null ) {
 	    rectangle.addTo(GH_M);
+	} else {
+	    // Draw arrow polyline instead of rectangle
+	    rectangle = ghCreateViewArrowPolyline(GH_CAPTUREFILE_JSON.viewpoint.rectangle,GH_CAPTUREFILE_JSON.viewpoint.heading, pwidth*2,pcolor);
+	    rectangle.addTo(GH_M);
 	}
+
+	
     }
     
 }
@@ -281,6 +287,20 @@ function ghCreateViewRectanglePolygon(rectangle,w,col) {
 	ret.push([p2.latLng.lat,p2.latLng.lng]);
     }
     return new L.polygon(ret,{color: col,fill:false});
+}
+function ghCreateViewArrowPolyline(rectangle,head, w,col) {
+
+    const lsize = 0.03;
+
+    let angle= _Rad2Deg(head); // 0 - 360 deg
+    if ( isNaN(angle) ) angle = 0.0;
+    if ( angle > 180 ) angle = angle - 360.0; // -180 - 180 deg;
+
+    let p0 = L.latLng( rectangle.camera.latlng[0], rectangle.camera.latlng[1] );
+    let p1 = L.latLng( rectangle.camera.latlng[0] + lsize , rectangle.camera.latlng[1] );
+    let p2 = L.GeometryUtil.rotatePoint(GH_M,p1, angle, p0);
+
+    return new L.polyline( [ p0,p2 ] ,{weight: w, color: col}).arrowheads();
 }
 
 //////////////////////////////////////////////////////////////////
