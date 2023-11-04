@@ -227,28 +227,39 @@
           <input type="checkbox" class="filled-in" id="tunnelcheckbox" />
           <span data-t>paragram3d.enabletunnel</span>
         </label><BR>
+	<!--
         <label id="gh3DProperty3DtileCheckbox">
           <input type="checkbox" class="filled-in" id="tile3dcheckbox" />
           <span data-t>paragram3d.enable3dtile</span>
         </label><BR>
-	<!--	
         <label>
           <input type="checkbox" class="filled-in" id="gh_fogcheckbox"/>
           <span data-t>paragram3d.enablefog</span>
         </label><BR>
-        <label>
-          <input name="3dtile_type" value="osmbuildings" type="radio" checked />
-          <span data-t>paragram3d.3dtileosmbuilding</span>
-        </label><BR>
-        <label>
-          <input name="3dtile_type" value="polygon" type="radio"/>
-          <span data-t>paragram3d.3dtilepolygon</span>
-        </label><BR>
-        <label>
-          <input name="3dtile_type" value="withtexture" type="radio"/>
-          <span data-t>paragram3d.3dtiletexture</span>
-        </label>
 	-->
+	<div id='vectortile3dradiobox'>
+	  <span data-t>paragram3d.show3dtile</span><BR>
+	  <label>
+            <input class="with-gap" name="vectortile3d" value="-1" type="radio" checked/>
+            <span data-t>modal.none</span>
+	  </label><BR>
+	  <label>
+            <input class="with-gap" name="vectortile3d" value="4" type="radio" />
+            <span data-t>paragram3d.osmbuilding</span>
+	  </label><BR>
+	  <label>
+            <input class="with-gap" name="vectortile3d" value="5" type="radio"/>
+            <span data-t>paragram3d.osmbuildingandtrees</span>
+	  </label>
+	  <label>
+            <input class="with-gap" name="vectortile3d" value="8" type="radio" />
+            <span data-t>paragram3d.texturepolygon</span>
+	  </label><BR>
+	  <label>
+            <input class="with-gap" name="vectortile3d" value="10" type="radio"/>
+            <span data-t>paragram3d.texturepolygonandtrees</span>
+	  </label>
+	</div>
       </p>
     </div>
     <!-- 3D Property Dialog -->
@@ -500,6 +511,7 @@
     <script src="../js/turfRail.min.js"></script>
     <script src="../js/ghRailBroadcast.js"></script>
     <script src="../js/ghRailWeather.js"></script>
+    <script src="../js/ghRailVectorTile.js"></script>
     <script src="../js/ghRail.js"></script>
   </body>
 </html>

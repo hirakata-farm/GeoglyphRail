@@ -9,6 +9,10 @@
 //     |- ghSpeedoMeter.js
 //     |- turfRail.min.js
 //     |- ghRail.js
+//     |- ghRailVectorTile.js
+//     |      |- ghRailVectorTileWorker.js ( thread )
+//     |             |- turfVectorTileWorker.min.js
+//     |
 //     |- ghRailWeather.js
 //     |- ghRailBroadcast.js  ( Communicate for ghRailTime.js )
 //     |- ghRailUnitWorker.js ( thread ) 
@@ -18,22 +22,14 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.13';
+var GH_REV = 'Revision 6.14';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
-var GH_PHOTOREALISTIC_3DTILE = false;
+//var GH_PHOTOREALISTIC_3DTILE = false;
 
 // https://github.com/CesiumGS/cesium/issues/8959
 //Cesium.ModelOutlineLoader.hasExtension = function() { return false; }
 
-//var GH_MEMORY = {
-//    'upperlimit' : 0.85,
-//    'lowerlimit' : 0.75,
-//    'prev3dtile' : false,
-//    'prevcache' : -1,
-//    'prevused' : 0
-//}
-    
 //////////////////////////////////
 var GH_SPEED_METER = null;
 var GH_SPEED_METER_PROP = null;
@@ -111,8 +107,27 @@ var GH_IS_PLAYING = false;
 var GH_SHOW_TILEQUEUE = false;
 var GH_SHOW_SPEEDOMETER = false;
 
-var GH_SHOW_3DTILE = false;
-var GH_3DTILE_OSMBUILDING = null;  // OSM Building primitive
+
+const GH_3DTILE_NONE = -1;
+const GH_3DTILE_PHOTOREALISTIC_GOOGLE = 2;
+const GH_3DTILE_OSMBUILDING = 4;
+const GH_3DTILE_OSMBUILDING_AND_TREE = 5;
+const GH_3DTILE_NEXTZEN_BUILDING_ONLY = 8;
+const GH_3DTILE_NEXTZEN_BUILDING_AND_TREE = 10;
+
+var GH_3DTILE = {
+    'mode' : GH_3DTILE_NONE,
+    'primitive' : null,
+    'areaunit' : 512,  // square meter per unit  sampling 100 = 10m x 10m
+    'interval' : 180,
+    'previousupdate' : null
+}
+// lowpoly    'areaunit' : 256,  // square meter per unit  sampling 100 = 10m x 10m
+// texture    'areaunit' : 512,  // square meter per unit  sampling 100 = 10m x 10m
+// check interval 10 sec default
+
+//var GH_SHOW_3DTILE = false;
+//var GH_3DTILE_OSMBUILDING = null;  // OSM Building primitive
 //var GH_USE_OSMBUILDING = false;
 //var GH_USE_3DTILE_TEXTURE = false;
 
@@ -544,9 +559,12 @@ function ghInitInputForm() {
 //    $( '#speedvaluereciprocal').change(function(){
 //	ghEnableCesiumMultiplierReciprocal( $(this).is(':checked') );
 //    });
-    $( '#tile3dcheckbox').change(function(){
-	var flag = $(this).is(':checked');
-	ghEnableCesium3Dtile( flag );
+//    $( '#tile3dcheckbox').change(function(){
+//	var flag = $(this).is(':checked');
+//	ghEnableCesium3Dtile( flag );
+//    });
+    $('input[name="vectortile3d"]:radio').change(function(){
+	ghEnableCesium3Dtile( parseFloat($(this).val()) );
     });
 
     //////////////////////////
@@ -605,18 +623,18 @@ function ghInitInputForm() {
 //    });
 
     $('input[name="cesiumweather"]:radio').change(function(){
-	var radio = $(this).val();
-    	var slider = $( '#rainslider').val();
+	let radio = $(this).val();
+    	let slider = $( '#rainslider').val();
 	ghSetCesiumWeather( radio, slider );
     });
     $( 'input[name="raindensity"]' ).change( function () {
-	var radio = "non";    
+	let radio = "non";    
 	$('input[name="cesiumweather"]').each(function(i){
             if ( $(this).is(':checked') ) {
 		radio = $(this).attr('value');
             }
 	});
-	var slider = $( this ).val();
+	let slider = $( this ).val();
 	ghSetCesiumWeather( radio, slider );
     });
 
@@ -1141,13 +1159,13 @@ function ghEnableCesiumWaterEffect(flag) {
 	GH_S.sun = new Cesium.Sun();
         GH_V.shadows = true;
 	GH_V.terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY;
-	if ( ! GH_PHOTOREALISTIC_3DTILE ) GH_S.setTerrain( GH_TPV[1] );
+	if ( GH_3DTILE.mode != GH_3DTILE_PHOTOREALISTIC_GOOGLE ) GH_S.setTerrain( GH_TPV[1] );
     } else {
 	GH_S.globe.enableLighting = false;
 	GH_S.sun = null; //undefined;
         GH_V.shadows = false;
 	GH_V.terrainShadows = Cesium.ShadowMode.DISABLED;
-	if ( ! GH_PHOTOREALISTIC_3DTILE ) GH_S.setTerrain( GH_TPV[0] );
+	if ( GH_3DTILE.mode != GH_3DTILE_PHOTOREALISTIC_GOOGLE ) GH_S.setTerrain( GH_TPV[0] );
     }
 }
 function ghEnableCesiumTunnel(flag) {
@@ -1159,43 +1177,77 @@ function ghEnableCesiumTunnel(flag) {
     }
 }
 async function __osmBuildingsAsync() {
-    if ( GH_SHOW_3DTILE  ) {
+    if ( GH_3DTILE.mode == GH_3DTILE_OSMBUILDING || GH_3DTILE.mode == GH_3DTILE_OSMBUILDING_AND_TREE ) {
 	try {
-	    GH_3DTILE_OSMBUILDING = await Cesium.createOsmBuildingsAsync({
+	    GH_3DTILE.primitive = await Cesium.createOsmBuildingsAsync({
 		showOutline : false
 	    });
-	    GH_V.scene.primitives.add(GH_3DTILE_OSMBUILDING);
+	    GH_V.scene.primitives.add(GH_3DTILE.primitive);
 	} catch (error) {
 	    console.log(`Error creating tileset: ${error}`);
 	}
 	    
     }
 }
-function ghEnableCesium3Dtile(flag){
+function ghEnableCesium3Dtile(type){
     if ( GH_V == null ) return;
 
-    //GH_3DTILE_TYPE = type;
-    if  ( flag ) {
-	GH_SHOW_3DTILE = true;
-    } else {
-	GH_SHOW_3DTILE = false;
+    switch (type) {
+    case GH_3DTILE_PHOTOREALISTIC_GOOGLE:
+	GH_3DTILE.mode = GH_3DTILE_PHOTOREALISTIC_GOOGLE;
+	// NOP
+	break;
+    case GH_3DTILE_OSMBUILDING:
+	GH_3DTILE.mode = GH_3DTILE_OSMBUILDING;
+	if ( GH_3DTILE.primitive == null ) {
+	    __osmBuildingsAsync();
+	} else {
+	    // NOP
+	}
+	ghVectorTileFreeDataSource('all');
+	break;
+    case GH_3DTILE_OSMBUILDING_AND_TREE:
+	GH_3DTILE.mode = GH_3DTILE_OSMBUILDING_AND_TREE;
+	if ( GH_3DTILE.primitive == null ) {
+	    __osmBuildingsAsync();
+	} else {
+	    // NOP
+	}
+	break;
+    case GH_3DTILE_NEXTZEN_BUILDING_ONLY:
+	GH_3DTILE.mode = GH_3DTILE_NEXTZEN_BUILDING_ONLY;
+	if ( GH_3DTILE.primitive == null ) {
+	    // NOP
+	} else {
+            GH_V.scene.primitives.remove(GH_3DTILE.primitive);
+	    GH_3DTILE.primitive.destroy();
+            GH_3DTILE.primitive = null ;
+	}
+	ghVectorTileFreeDataSource('all');
+	break;
+    case GH_3DTILE_NEXTZEN_BUILDING_AND_TREE:
+	GH_3DTILE.mode = GH_3DTILE_NEXTZEN_BUILDING_AND_TREE;
+	if ( GH_3DTILE.primitive == null ) {
+	    // NOP
+	} else {
+            GH_V.scene.primitives.remove(GH_3DTILE.primitive);
+	    GH_3DTILE.primitive.destroy();
+            GH_3DTILE.primitive = null ;
+	}
+	ghVectorTileFreeDataSource('all');
+	break;
+    default:
+	GH_3DTILE.mode = GH_3DTILE_NONE;
+	if ( GH_3DTILE.primitive == null ) {
+	    // NOP
+	} else {
+            GH_V.scene.primitives.remove(GH_3DTILE.primitive);
+	    GH_3DTILE.primitive.destroy();
+            GH_3DTILE.primitive = null ;
+	}
+	ghVectorTileFreeDataSource('all');
     }
 
-    if ( GH_3DTILE_OSMBUILDING == null ) {
-        if ( flag ) {
-	    __osmBuildingsAsync();
-        } else {
-            // NOP
-        }
-    } else {
-        if ( flag ) {
-            // NOP
-        } else {
-            GH_V.scene.primitives.remove(GH_3DTILE_OSMBUILDING);
-	    GH_3DTILE_OSMBUILDING.destroy();
-            GH_3DTILE_OSMBUILDING = null ;
-        }
-    }
 }
 
 function ghSetCesiumModelLabelProperty( type, flag , value ) {
@@ -1836,7 +1888,7 @@ function ghAdjustPitchHeightForTerrain(cam,model,h) {
     }
     
     let cam_terrain = 0;
-    if ( GH_PHOTOREALISTIC_3DTILE ) {
+    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 	cam_terrain = __sampleHeightsPhotorealisticGoogle3D(cam_latlng);
     } else {
 	cam_terrain = GH_S.globe.getHeight(cam_latlng);
@@ -1855,7 +1907,7 @@ function ghAdjustPitchHeightForTerrain(cam,model,h) {
     }
 
     let model_terrain = 0;
-    if ( GH_PHOTOREALISTIC_3DTILE ) {
+    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 	model_terrain = __sampleHeightsPhotorealisticGoogle3D(model_latlng);
     } else {
 	model_terrain = GH_S.globe.getHeight(model_latlng);
@@ -2334,7 +2386,7 @@ function __ghGetTerrainHeight(trainid,cartopos) {
     //
     //GH_V.scene.globe.getHeight(current_carto)
     let height_org = 0;
-    if ( GH_PHOTOREALISTIC_3DTILE ) {
+    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 	height_org = __sampleHeightsPhotorealisticGoogle3D(cartopos);
     } else {
 	height_org = GH_S.globe.getHeight(cartopos);
@@ -2380,14 +2432,14 @@ function __ghGetTerrainHeight(trainid,cartopos) {
 
 		if ( startdis < GH_TUNNEL_EDGE_METER ) {
 		    let startcart = new Cesium.Cartographic.fromDegrees([ lineprop[propid].startpos[0], lineprop[propid].startpos[1] ] );
-		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+		    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 			return __sampleHeightsPhotorealisticGoogle3D(startcart);
 		    } else {
 			return GH_S.globe.getHeight(startcart);
 		    }
 		} else if ( exitdis < GH_TUNNEL_EDGE_METER ) {
 		    let exitcart = new Cesium.Cartographic.fromDegrees([ lineprop[propid].exitpos[0], lineprop[propid].exitpos[1] ] );
-		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+		    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 			return __sampleHeightsPhotorealisticGoogle3D(exitcart);
 		    } else {
 			return GH_S.globe.getHeight(exitcart);
@@ -2412,7 +2464,7 @@ function __ghGetTerrainHeightSample(trainid,cartopos,prevcheckid) {
     //
     //GH_V.scene.globe.getHeight(current_carto)
     let height_org = 0;
-    if ( GH_PHOTOREALISTIC_3DTILE ) {
+    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 	height_org = __sampleHeightsPhotorealisticGoogle3D(cartopos);
     } else {
 	height_org = GH_S.globe.getHeight(cartopos);
@@ -2825,7 +2877,7 @@ function ghUpdateUnitCoachSlice(trainid,locomotive,tailpos,headpos) {
 		if ( GH_USE_TUNNEL ) {
 		    let ca = GH_V.scene.globe.ellipsoid.cartesianToCartographic(currentpos);
 		    let ch = 0;
-		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+		    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 			ch = __sampleHeightsPhotorealisticGoogle3D(ca);
 		    } else {
 			ch = GH_S.globe.getHeight(ca);
@@ -2968,6 +3020,22 @@ function __getDatasourceEntityByID(id) {
     }
     return null;
 }
+function _getEntityTimeCartesian(current,addsec) {
+    let tpos = new Cesium.Cartesian3();
+    let t0 = current;
+    if ( addsec != 0 ) {
+	t0 = Cesium.JulianDate.addSeconds(current, addsec, new Cesium.JulianDate());
+    }
+    if ( GH_V.trackedEntity != null ) {
+	GH_V.trackedEntity.position.getValue(t0,tpos);
+    } else if ( GH_PICK_ENTITY != null ) {
+	GH_PICK_ENTITY.position.getValue(t0,tpos);
+    } else {
+	tpos = null;
+    }
+    return tpos;
+}
+
 function ghUpdateCesiumScene(scene,currenttime) {
     //  Call every frame in Cesium
     ghUpdateStatusbarDatetime(currenttime);
@@ -2984,14 +3052,15 @@ function ghUpdateCesiumScene(scene,currenttime) {
 	}
     }
 
-    var currentpos = new Cesium.Cartesian3();
-    if ( GH_V.trackedEntity != null ) {
-	GH_V.trackedEntity.position.getValue(currenttime,currentpos);
-    } else if ( GH_PICK_ENTITY != null ) {
-	GH_PICK_ENTITY.position.getValue(currenttime,currentpos);
-    } else {
-	currentpos = null;
-    }
+    let currentpos = _getEntityTimeCartesian(currenttime,0);
+//    var currentpos = new Cesium.Cartesian3();
+//    if ( GH_V.trackedEntity != null ) {
+//	GH_V.trackedEntity.position.getValue(currenttime,currentpos);
+//    } else if ( GH_PICK_ENTITY != null ) {
+//	GH_PICK_ENTITY.position.getValue(currenttime,currentpos);
+//    } else {
+//	currentpos = null;
+//    }
     
     if ( GH_LAYER.autocenter ) {
 	if ( GH_CAM_MODE == GH_CAM_MODE_NONE ) {
@@ -3047,55 +3116,38 @@ function ghUpdateCesiumScene(scene,currenttime) {
     	GH_WEATHER.cloud = null;
     }
 
+
+    //
+    // 3D tile
+    //
+    if ( GH_3DTILE.mode > GH_3DTILE_OSMBUILDING ) {
+	if ( GH_3DTILE.previousupdate == null ) {
+	    ghVectorTileSetup(GH_FIELDINDEX.urilist);
+	    if ( currentpos == null ) {
+		// NOP
+	    } else {
+		ghVectorTileUpdate(currenttime,currentpos,GH_3DTILE.mode,GH_3DTILE.areaunit);
+	    }
+	    GH_3DTILE.previousupdate = currenttime;
+	} else {
+	    if ( currentpos == null ) {
+		// NOP
+	    } else {
+		let dt = Math.abs(Cesium.JulianDate.secondsDifference(GH_3DTILE.previousupdate,currenttime));
+		let checkinterval =  GH_3DTILE.interval * ( 0.3 / GH_V.clock.multiplier );
+		if ( dt > checkinterval ) {
+		    let nextpos = _getEntityTimeCartesian(currenttime,checkinterval);
+		    ghVectorTileUpdate(currenttime,nextpos,GH_3DTILE.mode,GH_3DTILE.areaunit);
+		    GH_3DTILE.previousupdate = currenttime;
+		}
+	    }
+	}
+    }
+
     //ghCheckMemoryDeprecated(currenttime);
     
 }
 
-/////////////////////////////////////////////////////////////
-//
-//  Unused
-//
-function ghCheckMemoryDeprecated(ct) {
-    //https://developer.mozilla.org/en-US/docs/Web/API/Performance/memory    
-    
-    if ( ( typeof performance.memory ) === 'undefined' ) return;
-
-    if ( Math.floor(ct.secondsOfDay*10) % 20 != 0 ) return;
-
-    let mem = performance.memory;
-    
-    //console.log(mem.totalJSHeapSize); // asigned size
-    //console.log(mem.usedJSHeapSize);  // used size
-    //console.log(mem.jsHeapSizeLimit); // limit size 
-    let ratio = mem.totalJSHeapSize / mem.jsHeapSizeLimit;
-
-    if ( ratio > GH_MEMORY.upperlimit ) {
-	// Memory usage approaching limit . reduce memory 
-	if ( GH_SHOW_3DTILE ) {
-	    GH_MEMORY.prev3dtile = GH_SHOW_3DTILE;
-	    GH_SHOW_3DTILE = false;
-	}
-	if ( GH_V.scene.globe.tileCacheSize > 100 ) {
-	    GH_MEMORY.prevcache = GH_V.scene.globe.tileCacheSize;
-	    ghSetCesiumCacheSize(100);
-	}
-	console.log('change memory slow mode ratio ' + ratio + ' limit ' + mem.jsHeapSizeLimit);
-    } else if ( ratio < GH_MEMORY.lowerlimit ) {
-	if ( GH_MEMORY.prev3dtile ) {
-	    GH_MEMORY.prev3dtile = false;
-	    GH_SHOW_3DTILE = true;
-	}
-	if ( GH_MEMORY.prevcache > 0 ) {
-	    ghSetCesiumCacheSize(GH_MEMORY.prevcache);
-	    GH_MEMORY.prevcache = -1;
-	}
-    } else {
-	// NOP
-    }
-    GH_MEMORY.prevused = mem.totalJSHeapSize;
-    console.log('ratio ' + ratio + ' limit ' + mem.jsHeapSizeLimit);
-}
-    
 function getUnmaskedInfo(gl) {
     var unMaskedInfo = {
         renderer: '',
@@ -3406,14 +3458,18 @@ function ghOnClickViewpointButton(type) {
 
 }
 ///////////////////////////////////////////////
+function ghReSetCesiumJulianClock(juriandate) {
+    if ( juriandate == null ) return;
+    GH_V.clock.currentTime = juriandate;
+    ghSetCesiumMultiplier( ghGetStatusbarMultiplier() );
+    ghUpdateStatusbarDatetime(null);
+}
 function __ghInitializeCzmlClcck() {
     let s1 = GH_V.clock.startTime;
     let s2 = GH_V.clock.stopTime;
     let diff = Math.abs(Cesium.JulianDate.secondsDifference(s1,s2)/2);
     var t1 = Cesium.JulianDate.addSeconds(s1, diff, new Cesium.JulianDate());
-    GH_V.clock.currentTime = t1;
-    ghSetCesiumMultiplier( ghGetStatusbarMultiplier() );
-    ghUpdateStatusbarDatetime(null);
+    ghReSetCesiumJulianClock(t1);
 }
 function __ghInitializeCzmlCamera() {
     let bounds = [];
@@ -3920,7 +3976,7 @@ function ghCreateConfigData(id) {
 	    "enablesun" : $('#lightingcheckbox').is(':checked'),
 	    "enablewater" : $('#watercheckbox').is(':checked'),
 	    "enabletunnel" : $('#tunnelcheckbox').is(':checked'),
-	    "enable3dobject" : $('#tile3dcheckbox').is(':checked')
+	    "enable3dobject" : GH_3DTILE.mode
 	},
 	"modelprop" : {
 	    "modellabel" : $('#modellabelcheckbox').is(':checked'),
@@ -4431,15 +4487,30 @@ function ghSetupConfigMenubar3D() {
 	    }
 
 	    if ( GH_CONFIGFILE_JSON.argument.gt ) {
-		// NOP for Google Photorealistic 3D
+		// NOP for Google Photorealistic 3D , set function ghSetBaseArgument()
+		//ghEnableCesium3Dtile( GH_3DTILE_PHOTOREALISTIC_GOOGLE );
 	    } else {
-		if ( GH_CONFIGFILE_JSON.menubar.threedprop.enable3dobject ) {
-		    ghEnableCesium3Dtile( true );
-		    $('#tile3dcheckbox').prop('checked', true);
-		} else {
-		    ghEnableCesium3Dtile( false );
-		    $('#tile3dcheckbox').prop('checked', false);
+		let val = GH_3DTILE_NONE;
+		if (  GH_CONFIGFILE_JSON.menubar.threedprop.enable3dobject ) {
+		    val = parseFloat(GH_CONFIGFILE_JSON.menubar.threedprop.enable3dobject);
 		}
+		$('input:radio[name="vectortile3d"]').each(function(index) {
+		    if ( parseFloat($(this).val()) == val ) {
+			$(this).prop('checked', true);
+		    } else {
+			$(this).prop('checked', false);
+		    }
+		});
+		ghEnableCesium3Dtile( val );
+		
+		//if ( GH_CONFIGFILE_JSON.menubar.threedprop.enable3dobject ) {
+		//    ghEnableCesium3Dtile( parseFloat(GH_CONFIGFILE_JSON.menubar.threedprop.enable3dobject) );
+		    //$('#tile3dcheckbox').prop('checked', true);
+		//} else {
+		//    //ghEnableCesium3Dtile( false );
+		//    ghEnableCesium3Dtile( parseFloat(GH_CONFIGFILE_JSON.menubar.threedprop.enable3dobject) );
+		//    //$('#tile3dcheckbox').prop('checked', false);
+		//}
 	    }
 	}
     }
@@ -5252,7 +5323,7 @@ function ghCheckBroadcastAPI() {
 
 function ghSetGooglePhotorealistic3D(flag) {
     if ( flag ) {
-	GH_PHOTOREALISTIC_3DTILE = true;
+	GH_3DTILE.mode = GH_3DTILE_PHOTOREALISTIC_GOOGLE;
 	GH_S.setTerrain( GH_TPV[0] );
 	Cesium.GoogleMaps.defaultApiKey = "___GOOGLE_TOKEN___";
 	__setupPhotorealisticGoogle3D();
@@ -5260,11 +5331,11 @@ function ghSetGooglePhotorealistic3D(flag) {
 
 	GH_S.globe.show = false;
     
-	$("#gh3DProperty3DtileCheckbox").hide(); // need not for this mode
-	$( '#tilecachesizeslider' ).val(2000);  //  Up size cache
+	$('#vectortile3dradiobox').hide(); // need not for this mode
+	$('#tilecachesizeslider').val(2000);  //  Up size cache
 	ghSetCesiumCacheSize(2000);
     } else {
-	GH_PHOTOREALISTIC_3DTILE = false;
+	GH_3DTILE.mode = GH_3DTILE_NONE;
 	GH_V.baseLayer = Cesium.ImageryLayer.fromProviderAsync(
 	    Cesium.ArcGisMapServerImageryProvider.fromBasemapType(
 		Cesium.ArcGisBaseMapType.SATELLITE
@@ -5379,7 +5450,7 @@ function ghSetBaseArgument() {
 	} else {
 	    if ( GH_FIELDINDEX.args.tc ) {
 		if ( GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc] ) {
-		    if ( GH_PHOTOREALISTIC_3DTILE ) {
+		    if ( GH_3DTILE.mode == GH_3DTILE_PHOTOREALISTIC_GOOGLE ) {
 			//Delay for google 
 			setTimeout( ghLoadFieldData, 495, ghGetResourceUri(GH_FIELDINDEX.data.fieldlist[GH_FIELDINDEX.args.tc].file) );
 		    } else {
@@ -5486,12 +5557,12 @@ async function __setupPhotorealisticGoogle3D() {
     // https://developers.google.com/maps/documentation/embed/get-api-key?hl=ja
     
     try {
-	const GH_PHOTOREALISTIC_TILESET = await Cesium.createGooglePhotorealistic3DTileset();
+	GH_3DTILE.primitive = await Cesium.createGooglePhotorealistic3DTileset();
 	//  Google API
 	// The globe does not need to be displayed,
 	// since the Photorealistic 3D Tiles include terrain
 	
-	GH_V.scene.primitives.add(GH_PHOTOREALISTIC_TILESET);
+	GH_V.scene.primitives.add(GH_3DTILE.primitive);
 	console.log(`Google OK Tileset `);
 	//alert(`Google Tileset is OK`);
     } catch (error) {
