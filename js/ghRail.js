@@ -119,7 +119,7 @@ var GH_3DTILE = {
     'mode' : GH_3DTILE_NONE,
     'primitive' : null,
     'areaunit' : 512,  // square meter per unit  sampling 100 = 10m x 10m
-    'interval' : 180,
+    'interval' : 20,   // sec
     'previousupdate' : null
 }
 // lowpoly    'areaunit' : 256,  // square meter per unit  sampling 100 = 10m x 10m
@@ -3033,6 +3033,9 @@ function _getEntityTimeCartesian(current,addsec) {
     } else {
 	tpos = null;
     }
+    if ( ( typeof tpos ) === 'undefined' ) {
+	return null;
+    }
     return tpos;
 }
 
@@ -3134,11 +3137,13 @@ function ghUpdateCesiumScene(scene,currenttime) {
 		// NOP
 	    } else {
 		let dt = Math.abs(Cesium.JulianDate.secondsDifference(GH_3DTILE.previousupdate,currenttime));
-		let checkinterval =  GH_3DTILE.interval * ( 0.3 / GH_V.clock.multiplier );
-		if ( dt > checkinterval ) {
+		if ( dt > GH_3DTILE.interval ) {
+		    let checkinterval =  GH_3DTILE.interval * ( 6.0 / GH_V.clock.multiplier );
 		    let nextpos = _getEntityTimeCartesian(currenttime,checkinterval);
-		    ghVectorTileUpdate(currenttime,nextpos,GH_3DTILE.mode,GH_3DTILE.areaunit);
-		    GH_3DTILE.previousupdate = currenttime;
+		    if ( nextpos != null ) {
+			ghVectorTileUpdate(currenttime,nextpos,GH_3DTILE.mode,GH_3DTILE.areaunit);
+			GH_3DTILE.previousupdate = currenttime;
+		    }
 		}
 	    }
 	}
