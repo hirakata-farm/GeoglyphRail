@@ -118,7 +118,7 @@ const GH_3DTILE_NEXTZEN_BUILDING_AND_TREE = 10;
 var GH_3DTILE = {
     'mode' : GH_3DTILE_NONE,
     'primitive' : null,
-    'areaunit' : 512,  // square meter per unit  sampling 100 = 10m x 10m
+    'areaunit' : 625,  // square meter per unit  sampling 625 = 25m x 25m
     'interval' : 20,   // sec
     'previousupdate' : null
 }

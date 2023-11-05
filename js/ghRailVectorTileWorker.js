@@ -46,6 +46,8 @@ var LAYER_MODE = GH_3DTILE_NONE;
 var GH_TERRAIN_PV = null;
 var GH_BUILDING_GEOJSON = null;
 var GH_BUILDING_POSITIONS = [];
+var GH_TREE_GEOJSON = null;
+var GH_TREE_POSITIONS = [];
 
 /////////////////////////////////////////////////
 
@@ -343,8 +345,8 @@ function ghParseVectorTileLayer(layer,x,y,z) {
 	    GH_BUILDING_POSITIONS = [];
             ghCreateBuildingGeojsonAndTerrain( layer[ LAYER_BUILDING_KEY ],x,y,z );
 	    if ( GH_BUILDING_POSITIONS.length > 2 && GH_TERRAIN_PV != null  ) {
-		var promise = Cesium.sampleTerrainMostDetailed(GH_TERRAIN_PV,GH_BUILDING_POSITIONS, true);
-		promise.then(function(val){
+		var buildingpromise = Cesium.sampleTerrainMostDetailed(GH_TERRAIN_PV,GH_BUILDING_POSITIONS, true);
+		buildingpromise.then(function(val){
 		    czml = ghCreateTextureBuildingTerrainCzml( x,y,z , val );
 		    let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
 		    let array_buffer = uint8_array.buffer;
@@ -361,30 +363,46 @@ function ghParseVectorTileLayer(layer,x,y,z) {
     if ( LAYER_MODE == GH_3DTILE_OSMBUILDING_AND_TREE ||  LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_AND_TREE ) {
 	//
 	//  Check Landcover Layer
-	if ( layer[ LAYER_LANDCOVER_KEY ] ) {
-            geo = ghCreateLandcoverSamplingGeojson( layer[ LAYER_LANDCOVER_KEY ],x,y,z );
-	} else if ( layer[ LAYER_LANDUSE_KEY ] ) {
-	    //
-	    //  Check Landuse Layer
-            geo = ghCreateLandcoverSamplingGeojson( layer[ LAYER_LANDUSE_KEY ],x,y,z );
-	} 
-	if ( geo != null ) {
-	    czml = ghCreateTextureTreeCzml( geo.features,x,y,z );
-//	    if ( LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_AND_TREE ) {
-//		// With texture
-//		czml = ghCreateTextureTreeCzml( geo.features,x,y,z );
-//	    } else {
-//		// Low poly
-//		czml = ghCreateLowpolyTreeCzml( geo.features,x,y,z );
-//	    }
-	} else {
-	    // NOP
+//	if ( layer[ LAYER_LANDCOVER_KEY ] ) {
+//            geo = ghCreateLandcoverSamplingGeojson( layer[ LAYER_LANDCOVER_KEY ],x,y,z );
+//	} else if ( layer[ LAYER_LANDUSE_KEY ] ) {
+//	    //
+//	    //  Check Landuse Layer
+//            geo = ghCreateLandcoverSamplingGeojson( layer[ LAYER_LANDUSE_KEY ],x,y,z );
+//	} 
+//	if ( geo != null ) {
+//	    czml = ghCreateTextureTreeCzml( geo.features,x,y,z );
+////	    if ( LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_AND_TREE ) {
+////		// With texture
+////		czml = ghCreateTextureTreeCzml( geo.features,x,y,z );
+////	    } else {
+////		// Low poly
+////		czml = ghCreateLowpolyTreeCzml( geo.features,x,y,z );
+////	    }
+//	} else {
+//	    // NOP
+//	}
+//	if ( czml != null ) {
+//            let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
+//            let array_buffer = uint8_array.buffer;
+//            self.postMessage(array_buffer, [array_buffer]);               
+//	}
+
+	if ( layer[ LAYER_LANDUSE_KEY ] ) {
+	    GH_TREE_GEOJSON = null;
+	    GH_TREE_POSITIONS = [];
+            ghCreateLandcoverSamplingGeojsonAndTerrain( layer[ LAYER_LANDUSE_KEY ],x,y,z );
+	    if ( GH_TREE_POSITIONS.length > 2 && GH_TERRAIN_PV != null  ) {
+		var treepromise = Cesium.sampleTerrainMostDetailed(GH_TERRAIN_PV,GH_TREE_POSITIONS, true);
+		treepromise.then(function(val){
+		    czml = ghCreateTextureTreeTerrainCzml( x,y,z , val );
+		    let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
+		    let array_buffer = uint8_array.buffer;
+		    self.postMessage(array_buffer, [array_buffer]);               
+		});
+	    }
 	}
-	if ( czml != null ) {
-            let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
-            let array_buffer = uint8_array.buffer;
-            self.postMessage(array_buffer, [array_buffer]);               
-	}
+	
     }
     
 }
@@ -482,6 +500,57 @@ function ghCreateTextureTreeCzml( features , x, y, z) {
         }
     }
 
+    return czml;
+}
+
+function ghCreateTextureTreeTerrainCzml( x, y, z , posarray ) {
+
+    let czml = [{
+	"id" : "document",
+	"name" :  "VectorTile_texture_" + x + "_" + y + "_"  + z ,
+	"type" :  "tree",
+	"version" : "1.0"
+    }];
+
+    const features = GH_TREE_GEOJSON.features;
+    let idx = 0;
+    for (let i = 0; i < features.length; i++) {
+	let entity = features[i];
+	for (let j = 0; j < entity.geometry.coordinates.length; j++) {
+            let coord = entity.geometry.coordinates[j];
+	    let height = parseFloat(posarray[idx].height) - 0.1;
+            let position = Cesium.Cartesian3.fromDegrees( coord[0], coord[1] );
+            let tname = "tree_" + i + "_" + j;
+            //  1 degree to 170 degree
+            let hpr = new Cesium.HeadingPitchRoll( Math.floor(Math.random()*(170-1)+1) , 0.0, 0.0);
+            let orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+            Cesium.Quaternion.normalize(orientation, orientation); 
+            let ent = {
+                id : "GH_" + tname,
+                name : tname,
+                position : {
+                    "cartographicDegrees" : [coord[0], coord[1] , height ]  
+                },
+                orientation : {
+                    "unitQuaternion" : [orientation.x,orientation.y,orientation.z,orientation.w ]  
+                },
+                model : {
+                    gltf : ghGetResourceUri(GH_TILE_FOREST_TEXTURE_URI[(i+j) % GH_TILE_FOREST_TEXTURE_LEN]),
+                    heightReference : "NONE",
+                    scale : 1.0,
+                    minumumPixelSize : 64,
+                    shadows : {
+                        "shadowMode" : "ENABLED"
+                    },
+                    distanceDisplayCondition :  {
+                        distanceDisplayCondition : [ 1.0, TILE_DISTANCE ]
+                    }
+                }
+            };
+	    idx ++;
+            czml.push(ent);
+        }
+    }
     return czml;
 }
 
@@ -638,7 +707,7 @@ function ghCreateTextureBuildingCzml( features , x, y, z ) {
                     "cartographicDegrees" : roofpositions
                 },
 		height: ht,
-		heightReference : "NONE",
+		heightReference : "RELATIVE_TO_GROUND",
                 shadows : {
                     "shadowMode" : "ENABLED"
                 },
@@ -1020,6 +1089,73 @@ function ghCreateLandcoverSamplingGeojson( layer,x,y,z ) {
     }
     return turf.helpers.featureCollection(multipoints);
 }
+function ghCreateLandcoverSamplingGeojsonAndTerrain( layer,x,y,z ) {
+    let x0 = _tile2long(x,z);
+    let y0 = _tile2lat(y,z);
+    let xd = _tile2long(x+1,z) - x0;
+    let yd = _tile2lat(y+1,z) - y0;
+    let xp = 0;
+    let yp = 0;
+    let tile_extent = layer.extent;
+    let multipoints = [];
+
+    for(let i = 0,len=layer.length; i < len; i++) {
+        let f = layer.feature(i);
+        //VectorTileFeature.types = ['Unknown', 'Point', 'LineString', 'Polygon'];
+        let prop = "";
+        if (typeof f.properties === "undefined") {
+            prop = new Object();
+        } else {
+            prop = f.properties;            
+            if (typeof f.properties.class === "undefined") {
+                // for nextzen server tile
+                prop.class = f.properties.kind;            
+            }
+        }
+        if ( prop.class == "wood"
+	     || prop.class == "grass"
+	     || prop.class == "forest" 
+             || prop.class == "natural_wood"  ) {
+        
+            let geo = f.loadGeometry();
+            prop.kind = "landcover";
+            prop.type = "_" + x + "_" + y + "_" + z;
+
+            let ret = [];
+            for(let j = 0,len2=geo.length; j < len2; j++) {
+                let len3 = geo[j].length;
+                if ( len3 > 2 ) {
+		    //  for polygon 
+                    ret[j] = [];
+                    for(let k = 0; k < len3; k++) {
+                        xp = x0 + ( geo[j][k].x / tile_extent * xd );
+                        yp = y0 + ( geo[j][k].y / tile_extent * yd );
+                        ret[j][k] = [ xp, yp ];
+                    }
+                    let aline = turf.helpers.lineString(ret[j],prop) ;
+                    let apoly = turf.lineToPolygon.default(aline) ;
+                    let areasize = turf.area.default(apoly); // square meter
+                    let count = Math.floor(areasize / LANDCOVER_AREA_UNIT) ;
+                    let bbox = turf.bbox.default(aline);
+                    let points = turf.random.randomPoint(count,{ bbox: bbox });
+                    let inpoints = ghCreatePointsWithinPolygon(points, apoly);
+                    if ( inpoints != null ) {
+
+			multipoints.push ( inpoints  );
+			for (let j = 0; j < inpoints.geometry.coordinates.length; j++) {
+			    let coord = inpoints.geometry.coordinates[j];
+			    GH_TREE_POSITIONS.push( Cesium.Cartographic.fromDegrees( coord[0], coord[1] ) );
+			}
+		    }
+                } else {
+		    // NOP
+		    // point or line , Not polygon
+		}
+            }
+        }
+    }
+    GH_TREE_GEOJSON = turf.helpers.featureCollection(multipoints);
+}
 ///////////////////////////////////////
 
 function _getTileSizeInMeters( latitude, zoom ) {
@@ -1058,11 +1194,6 @@ self.addEventListener('message', function(e) {
 	_processQueue();
     } else if ( command == "urilist") {
         GH_URILIST = data.value;
-	var promise = Cesium.createWorldTerrainAsync();
-	promise.then(function(val){
-	    GH_TERRAIN_PV = val;
-	});
-
     } else if ( command == "remove") {
         let x0 = parseInt(data.x,10);
         let y0 = parseInt(data.y,10);
@@ -1086,21 +1217,9 @@ self.addEventListener('message', function(e) {
 });
 
 
-//
-// https://cesium.com/learn/cesiumjs/ref-doc/global.html?classFilter=sample#sampleTerrainMostDetailed
-//
-//const terrainProvider = await Cesium.createWorldTerrainAsync();
-//const positions = [
-//    Cesium.Cartographic.fromDegrees(86.925145, 27.988257),
-//    Cesium.Cartographic.fromDegrees(87.0, 28.0)
-//];
-//const updatedPositions = await Cesium.sampleTerrainMostDetailed(terrainProvider, positions);
-//// positions[0].height and positions[1].height have been updated.
-//// updatedPositions is just a reference to positions.
+//  Initialize Cesium World Terrain
+var promise = Cesium.createWorldTerrainAsync();
+promise.then(function(val){
+    GH_TERRAIN_PV = val;
+});
 
-//// To handle tile errors, pass true for the rejectOnTileFail parameter.
-//try {
-//   const updatedPositions = await Cesium.sampleTerrainMostDetailed(terrainProvider, positions, true);
-//} catch (error) {
-//  // A tile request error occurred.
-//}
