@@ -1176,17 +1176,96 @@ function ghEnableCesiumTunnel(flag) {
 	GH_USE_TUNNEL = false;
     }
 }
-async function __osmBuildingsAsync() {
+//
+// OSM building 
+//
+//  https://cesium.com/learn/cesiumjs/ref-doc/global.html?classFilter=osm#createOsmBuildingsAsync
+//  https://cesium.com/learn/cesiumjs/ref-doc/Cesium3DTileStyle.html?classFilter=Cesium3DTileStyle
+//
+//  https://cesium.com/platform/cesium-ion/content/cesium-osm-buildings/
+//    https://wiki.openstreetmap.org/wiki/Key:shop
+//    https://wiki.openstreetmap.org/wiki/Key:building
+//
+function ghSetupOSMBuildings(type) {
     if ( GH_3DTILE.mode == GH_3DTILE_OSMBUILDING || GH_3DTILE.mode == GH_3DTILE_OSMBUILDING_AND_TREE ) {
-	try {
-	    GH_3DTILE.primitive = await Cesium.createOsmBuildingsAsync({
-		showOutline : false
-	    });
-	    GH_V.scene.primitives.add(GH_3DTILE.primitive);
-	} catch (error) {
-	    console.log(`Error creating tileset: ${error}`);
+	if ( type == 1 ) {
+	    __osmBuildingsAsyncStyle_1();
+	} else if ( type == 2 ) {
+	    __osmBuildingsAsyncStyle_2();
+	} else {
+	    __osmBuildingsAsync();
 	}
-	    
+    }
+
+}
+async function __osmBuildingsAsync() {
+    try {
+	GH_3DTILE.primitive = await Cesium.createOsmBuildingsAsync({
+	    showOutline : false,
+	    enableShowOutline : false
+	});
+	GH_V.scene.primitives.add(GH_3DTILE.primitive);
+    } catch (error) {
+	console.log(`Error creating tileset: ${error}`);
+    }
+}
+async function __osmBuildingsAsyncStyle_1() {
+    try {
+	GH_3DTILE.primitive = await Cesium.createOsmBuildingsAsync({
+	    showOutline : false,
+	    enableShowOutline : false,
+	    style: new Cesium.Cesium3DTileStyle({
+		defines: {
+		    material: "${feature['building:material']}"
+		},
+		color: {
+		    conditions: [
+			["${material} === null", "color('white')"],
+			["${material} === 'glass'", "color('skyblue', 0.5)"],
+			["${material} === 'concrete'", "color('grey')"],
+			["${material} === 'brick'", "color('indianred')"],
+			["${material} === 'stone'", "color('lightslategrey')"],
+			["${material} === 'metal'", "color('lightgrey')"],
+			["${material} === 'steel'", "color('lightsteelblue')"],
+			["true", "color('white')"]
+		    ]
+		}
+	    })
+	});
+	GH_V.scene.primitives.add(GH_3DTILE.primitive);
+    } catch (error) {
+	console.log(`Error creating tileset: ${error}`);
+    }
+}
+async function __osmBuildingsAsyncStyle_2() {
+    try {
+	GH_3DTILE.primitive = await Cesium.createOsmBuildingsAsync({
+	    showOutline : false,
+	    enableShowOutline : false,
+	    style: new Cesium.Cesium3DTileStyle({
+		color: {
+		    conditions: [
+			["${feature['building']} === 'commercial'", "color('#778899')"],
+			["${feature['building']} === 'industrial'", "color('#A9A9A9')"],
+			["${feature['building']} === 'office'", "color('#B0C4DE')"],
+			["${feature['building']} === 'supermarket'", "color('#AFEEEE')"],
+			["${feature['building']} === 'hotel'", "color('#F0FFF0')"],
+			["${feature['building']} === 'apartments'", "color('#F5DEB3')"],
+			["${feature['building']} === 'house'", "color('#D2B48C')"],
+			["${feature['building']} === 'cathedral'", "color('#4B0082')"],
+			["${feature['building']} === 'chaperl'", "color('#9370DB')"],
+			["${feature['building']} === 'civic'", "color('#BDB76B')"],
+			["${feature['building']} === 'government'", "color('#EEE8AA')"],
+			["${feature['building']} === 'hospital'", "color('#F5F5DC')"],
+			["${feature['building']} === 'public'", "color('#808000')"],
+			[true, "color('#ffffff')"]
+		    ]
+		}
+	    })
+	});
+	GH_V.scene.primitives.add(GH_3DTILE.primitive);
+    } catch (error) {
+	console.log(`Error creating tileset: ${error}`);
     }
 }
 function ghEnableCesium3Dtile(type){
@@ -1200,7 +1279,7 @@ function ghEnableCesium3Dtile(type){
     case GH_3DTILE_OSMBUILDING:
 	GH_3DTILE.mode = GH_3DTILE_OSMBUILDING;
 	if ( GH_3DTILE.primitive == null ) {
-	    __osmBuildingsAsync();
+	    ghSetupOSMBuildings(1);
 	} else {
 	    // NOP
 	}
@@ -1209,7 +1288,7 @@ function ghEnableCesium3Dtile(type){
     case GH_3DTILE_OSMBUILDING_AND_TREE:
 	GH_3DTILE.mode = GH_3DTILE_OSMBUILDING_AND_TREE;
 	if ( GH_3DTILE.primitive == null ) {
-	    __osmBuildingsAsync();
+	    ghSetupOSMBuildings(1);
 	} else {
 	    // NOP
 	}
