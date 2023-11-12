@@ -237,6 +237,27 @@ const GH_TILE_POLYGON_SMALL_COLOR = [
 const GH_TILE_POLYGON_ALPHA = 0.3;
 
 
+const GH_TILE_FOREST_BILLBOARD_URI =  [
+    "tree/_tree_02_0000032x64.png",
+    "tree/_tree_02_1000032x64.png",
+    "tree/_tree_02_2000032x64.png",
+    "tree/_tree_02_3000032x64.png",
+    "tree/_tree_02_4000032x64.png",
+    "tree/_tree_02_5000032x64.png",
+    "tree/_tree_02_6000032x64.png",
+    "tree/_tree_02_7000032x64.png",
+    "tree/_tree_08_0000032x64.png",
+    "tree/_tree_08_1000032x64.png",
+    "tree/_tree_08_2000032x64.png",
+    "tree/_tree_08_3000032x64.png",
+    "tree/_tree_08_4000032x64.png",
+    "tree/_tree_08_5000032x64.png",
+    "tree/_tree_08_6000032x64.png",
+    "tree/_tree_08_7000032x64.png"
+];
+const GH_TILE_FOREST_BILLBOARD_LEN =  GH_TILE_FOREST_BILLBOARD_URI.length;
+
+
 //////////////////////////
 
 function _processQueue(){
@@ -395,7 +416,8 @@ function ghParseVectorTileLayer(layer,x,y,z) {
 	    if ( GH_TREE_POSITIONS.length > 2 && GH_TERRAIN_PV != null  ) {
 		var treepromise = Cesium.sampleTerrainMostDetailed(GH_TERRAIN_PV,GH_TREE_POSITIONS, true);
 		treepromise.then(function(val){
-		    czml = ghCreateTextureTreeTerrainCzml( x,y,z , val );
+		    czml = ghCreateBillboardTreeTerrainCzml( x,y,z , val );
+		    //czml = ghCreateTextureTreeTerrainCzml( x,y,z , val );
 		    let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
 		    let array_buffer = uint8_array.buffer;
 		    self.postMessage(array_buffer, [array_buffer]);               
@@ -545,6 +567,53 @@ function ghCreateTextureTreeTerrainCzml( x, y, z , posarray ) {
                     distanceDisplayCondition :  {
                         distanceDisplayCondition : [ 1.0, TILE_DISTANCE ]
                     }
+                }
+            };
+	    idx ++;
+            czml.push(ent);
+        }
+    }
+    return czml;
+}
+
+function ghCreateBillboardTreeTerrainCzml( x, y, z , posarray ) {
+
+    let czml = [{
+	"id" : "document",
+	"name" :  "VectorTile_billboard_" + x + "_" + y + "_"  + z ,
+	"type" :  "tree",
+	"version" : "1.0"
+    }];
+
+    const features = GH_TREE_GEOJSON.features;
+    let idx = 0;
+    for (let i = 0; i < features.length; i++) {
+	let entity = features[i];
+	for (let j = 0; j < entity.geometry.coordinates.length; j++) {
+            let coord = entity.geometry.coordinates[j];
+	    let height = parseFloat(posarray[idx].height) - 0.1;
+            let position = Cesium.Cartesian3.fromDegrees( coord[0], coord[1] );
+            let tname = "tree_" + i + "_" + j;
+            let ent = {
+                id : "GH_" + tname,
+                name : tname,
+                position : {
+                    "cartographicDegrees" : [coord[0], coord[1] , height ]  
+                },
+                billboard : {
+                    image : ghGetResourceUri(GH_TILE_FOREST_BILLBOARD_URI[(i+j) % GH_TILE_FOREST_BILLBOARD_LEN]),
+		    eyeOffset : {
+			"cartesian": [ 0, 0, 0 ]
+		    },
+		    horizontalOrigin : "CENTER",
+		    pixelOffset : {
+			"cartesian2" : [ 0, 0 ]
+		    },
+                    scale : 1.0,
+		    sizeInMeters : true,
+		    width : 4,
+		    height : 8,
+		    verticalOrigin : "BOTTOM"
                 }
             };
 	    idx ++;

@@ -114,11 +114,12 @@ const GH_3DTILE_OSMBUILDING = 4;
 const GH_3DTILE_OSMBUILDING_AND_TREE = 5;
 const GH_3DTILE_NEXTZEN_BUILDING_ONLY = 8;
 const GH_3DTILE_NEXTZEN_BUILDING_AND_TREE = 10;
+const GH_3DTILE_OSMBUILDING_STYLE = 1; // see __osmBuildingsAsyncStyle_1
 
 var GH_3DTILE = {
     'mode' : GH_3DTILE_NONE,
     'primitive' : null,
-    'areaunit' : 625,  // square meter per unit  sampling 625 = 25m x 25m
+    'areaunit' : 900,  // square meter per unit  sampling 900 = 30m x 30m
     'interval' : 20,   // sec
     'previousupdate' : null
 }
@@ -1279,7 +1280,7 @@ function ghEnableCesium3Dtile(type){
     case GH_3DTILE_OSMBUILDING:
 	GH_3DTILE.mode = GH_3DTILE_OSMBUILDING;
 	if ( GH_3DTILE.primitive == null ) {
-	    ghSetupOSMBuildings(1);
+	    ghSetupOSMBuildings(GH_3DTILE_OSMBUILDING_STYLE);
 	} else {
 	    // NOP
 	}
@@ -1288,7 +1289,7 @@ function ghEnableCesium3Dtile(type){
     case GH_3DTILE_OSMBUILDING_AND_TREE:
 	GH_3DTILE.mode = GH_3DTILE_OSMBUILDING_AND_TREE;
 	if ( GH_3DTILE.primitive == null ) {
-	    ghSetupOSMBuildings(1);
+	    ghSetupOSMBuildings(GH_3DTILE_OSMBUILDING_STYLE);
 	} else {
 	    // NOP
 	}
