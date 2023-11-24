@@ -786,7 +786,7 @@ function ghInitCesiumViewer(domid) {
     GH_S = GH_V.scene;
     //GH_S.globe.show = false;  //  at ghSetGooglePhotorealistic3D(flag) 
     GH_S.globe.depthTestAgainstTerrain = true;
-    GH_V.extend(Cesium.viewerCesiumInspectorMixin);
+//    GH_V.extend(Cesium.viewerCesiumInspectorMixin);
     
     //
     //  Rendering Slow Message
