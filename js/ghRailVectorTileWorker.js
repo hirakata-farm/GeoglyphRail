@@ -52,7 +52,7 @@ var GH_TREE_POSITIONS = [];
 /////////////////////////////////////////////////
 
 const EARTH_RADIUS_IN_METERS = 6378137;
-const BUILDING_DEFAULT_HEIGHT = 5; // [m]
+const BUILDING_DEFAULT_HEIGHT = 6; // [m]
 const BUILDING_POLYGON_TOO_SMALL = 20; // [m]
 
 const BUILDING_POLYGON_ROOF_UNIT = 4; // Texture repeat unit size
@@ -239,20 +239,20 @@ const GH_TILE_POLYGON_ALPHA = 0.3;
 
 const GH_TILE_FOREST_BILLBOARD_URI =  [
     "tree/_tree_02_0000032x64.png",
-    "tree/_tree_02_1000032x64.png",
-    "tree/_tree_02_2000032x64.png",
-    "tree/_tree_02_3000032x64.png",
-    "tree/_tree_02_4000032x64.png",
-    "tree/_tree_02_5000032x64.png",
-    "tree/_tree_02_6000032x64.png",
-    "tree/_tree_02_7000032x64.png",
     "tree/_tree_08_0000032x64.png",
+    "tree/_tree_02_1000032x64.png",
     "tree/_tree_08_1000032x64.png",
+    "tree/_tree_02_2000032x64.png",
     "tree/_tree_08_2000032x64.png",
+    "tree/_tree_02_3000032x64.png",
     "tree/_tree_08_3000032x64.png",
+    "tree/_tree_02_4000032x64.png",
     "tree/_tree_08_4000032x64.png",
+    "tree/_tree_02_5000032x64.png",
     "tree/_tree_08_5000032x64.png",
+    "tree/_tree_02_6000032x64.png",
     "tree/_tree_08_6000032x64.png",
+    "tree/_tree_02_7000032x64.png",
     "tree/_tree_08_7000032x64.png"
 ];
 const GH_TILE_FOREST_BILLBOARD_LEN =  GH_TILE_FOREST_BILLBOARD_URI.length;
@@ -340,27 +340,10 @@ function ghParseVectorTileLayer(layer,x,y,z) {
     // f.type = 0,1,2,3
     //
 
-    let geo = null;
-    let czml = null;
-
     if ( LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_ONLY ||  LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_AND_TREE ) {
 	
 	//
 	//  Check Building Layer
-//	if ( layer[ LAYER_BUILDING_KEY ] ) {
-//            geo = ghCreateBuildingGeojson( layer[ LAYER_BUILDING_KEY ],x,y,z );
-//	}
-//	if ( geo != null ) {
-//	    czml = ghCreateTextureBuildingCzml( geo.features,x,y,z );
-//	} else {
-//	    // NOP
-//	}
-//	if ( czml != null ) {
-//            let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
-//            let array_buffer = uint8_array.buffer;
-//            self.postMessage(array_buffer, [array_buffer]);               
-//	}
-
 	if ( layer[ LAYER_BUILDING_KEY ] ) {
 	    GH_BUILDING_GEOJSON = null;
 	    GH_BUILDING_POSITIONS = [];
@@ -368,8 +351,7 @@ function ghParseVectorTileLayer(layer,x,y,z) {
 	    if ( GH_BUILDING_POSITIONS.length > 2 && GH_TERRAIN_PV != null  ) {
 		var buildingpromise = Cesium.sampleTerrainMostDetailed(GH_TERRAIN_PV,GH_BUILDING_POSITIONS, true);
 		buildingpromise.then(function(val){
-		    czml = ghCreateTextureBuildingTerrainCzml( x,y,z , val );
-		    let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
+		    let uint8_array = new TextEncoder().encode( JSON.stringify( ghCreateTextureBuildingTerrainCzml( x,y,z , val ) ) );
 		    let array_buffer = uint8_array.buffer;
 		    self.postMessage(array_buffer, [array_buffer]);               
 		});
@@ -379,36 +361,9 @@ function ghParseVectorTileLayer(layer,x,y,z) {
 
     }
 
-    geo = null;
-    czml = null;
     if ( LAYER_MODE == GH_3DTILE_OSMBUILDING_AND_TREE ||  LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_AND_TREE ) {
 	//
 	//  Check Landcover Layer
-//	if ( layer[ LAYER_LANDCOVER_KEY ] ) {
-//            geo = ghCreateLandcoverSamplingGeojson( layer[ LAYER_LANDCOVER_KEY ],x,y,z );
-//	} else if ( layer[ LAYER_LANDUSE_KEY ] ) {
-//	    //
-//	    //  Check Landuse Layer
-//            geo = ghCreateLandcoverSamplingGeojson( layer[ LAYER_LANDUSE_KEY ],x,y,z );
-//	} 
-//	if ( geo != null ) {
-//	    czml = ghCreateTextureTreeCzml( geo.features,x,y,z );
-////	    if ( LAYER_MODE == GH_3DTILE_NEXTZEN_BUILDING_AND_TREE ) {
-////		// With texture
-////		czml = ghCreateTextureTreeCzml( geo.features,x,y,z );
-////	    } else {
-////		// Low poly
-////		czml = ghCreateLowpolyTreeCzml( geo.features,x,y,z );
-////	    }
-//	} else {
-//	    // NOP
-//	}
-//	if ( czml != null ) {
-//            let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
-//            let array_buffer = uint8_array.buffer;
-//            self.postMessage(array_buffer, [array_buffer]);               
-//	}
-
 	if ( layer[ LAYER_LANDUSE_KEY ] ) {
 	    GH_TREE_GEOJSON = null;
 	    GH_TREE_POSITIONS = [];
@@ -416,9 +371,8 @@ function ghParseVectorTileLayer(layer,x,y,z) {
 	    if ( GH_TREE_POSITIONS.length > 2 && GH_TERRAIN_PV != null  ) {
 		var treepromise = Cesium.sampleTerrainMostDetailed(GH_TERRAIN_PV,GH_TREE_POSITIONS, true);
 		treepromise.then(function(val){
-		    czml = ghCreateBillboardTreeTerrainCzml( x,y,z , val );
-		    //czml = ghCreateTextureTreeTerrainCzml( x,y,z , val );
-		    let uint8_array = new TextEncoder().encode( JSON.stringify(czml) );
+		    // ghCreateTextureTreeTerrainCzml( x,y,z , val );
+		    let uint8_array = new TextEncoder().encode( JSON.stringify( ghCreateBillboardTreeTerrainCzml( x,y,z , val ) ) );
 		    let array_buffer = uint8_array.buffer;
 		    self.postMessage(array_buffer, [array_buffer]);               
 		});
@@ -593,6 +547,9 @@ function ghCreateBillboardTreeTerrainCzml( x, y, z , posarray ) {
             let coord = entity.geometry.coordinates[j];
 	    let height = parseFloat(posarray[idx].height) - 0.1;
             let position = Cesium.Cartesian3.fromDegrees( coord[0], coord[1] );
+	    let scalesize = Math.random()*(1.6-0.8)+0.8;
+	    let w = 4 * scalesize;
+	    let h = 8 * scalesize;
             let tname = "tree_" + i + "_" + j;
             let ent = {
                 id : "GH_" + tname,
@@ -611,8 +568,8 @@ function ghCreateBillboardTreeTerrainCzml( x, y, z , posarray ) {
 		    },
                     scale : 1.0,
 		    sizeInMeters : true,
-		    width : 4,
-		    height : 8,
+		    width : w,
+		    height : h,
 		    verticalOrigin : "BOTTOM"
                 }
             };
@@ -846,10 +803,11 @@ function ghCreateTextureBuildingTerrainCzml( x, y, z , posarray ) {
         let roofpositions = _getDegreesHeightArray(entity.geometry.coordinates[0],ht);
         let texscale = track / ( 4 * BUILDING_POLYGON_ROOF_UNIT ) ;   // 5 (texture unit) * 4 ( square sampling) 
         let texscalex = track / BUILDING_POLYGON_WALL_UNIT ;          // 5 (texture unit) 
-        let texscaley = wallht / BUILDING_POLYGON_WALL_UNIT ; // 5 (texture unit)
+        let texscaley = wallht / BUILDING_POLYGON_WALL_UNIT ;         // 5 (texture unit)
 	
         let roofmaterial = null;
         let wallmaterial = null;
+	let numofpolygons = entity.geometry.coordinates[0].length;
 	
         if ( ht > BUILDING_POLYGON_HEIGHT_THRESHHOLD ) {
             roofmaterial = {
@@ -857,9 +815,12 @@ function ghCreateTextureBuildingTerrainCzml( x, y, z , posarray ) {
                     image : {
                         uri : ghGetResourceUri(GH_TILE_ROOF_HIGH_URI[i%GH_TILE_ROOF_HIGH_LEN])
                     },
-                    repeat : {
-                        cartesian2 : [texscale,texscale]
-                    }
+//                    repeat : {
+//                        cartesian2 : [texscale,texscale]
+//                    }
+//////////////////////////    Addhook for Cesium texCoordinates
+//////////////////////////    function ghVectorTileLoad(czml,type) 
+                    repeat : [texscale,texscale]
                 }
             };
             wallmaterial = {
@@ -899,9 +860,13 @@ function ghCreateTextureBuildingTerrainCzml( x, y, z , posarray ) {
                         image : {
                             uri : ghGetResourceUri(GH_TILE_ROOF_MEDIUM_URI[i%GH_TILE_ROOF_MEDIUM_LEN])
                         },
-                        repeat : {
-                            cartesian2 : [texscale,texscale]
-                        }
+//			
+//                        repeat : {
+//                            cartesian2 : [texscale,texscale]
+//                        }
+//////////////////////////    Addhook for Cesium texCoordinates
+//////////////////////////    function ghVectorTileLoad(czml,type) 
+			repeat : [texscale,texscale]
                     }
                 };
                 wallmaterial = {
@@ -927,7 +892,7 @@ function ghCreateTextureBuildingTerrainCzml( x, y, z , posarray ) {
         
         //  Roof Polygon
         let poly = {
-            "id" : "polygon" + i,
+            "id" : "polygon" + i + "_" + numofpolygons + '_' + texscale,
             "name" : 'roof'+entity.properties.type,
             "polygon" : {
                 positions : {
@@ -951,6 +916,7 @@ function ghCreateTextureBuildingTerrainCzml( x, y, z , posarray ) {
 	//  Wall
         let wall = {
             "id" : "wall" + i,
+	    "id" : "wall" + i + "_" + texscalex + '_' + texscaley,
             "name" : 'wall'+entity.properties.type,
             "wall" : {
                 positions : {

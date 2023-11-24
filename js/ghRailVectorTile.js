@@ -92,6 +92,24 @@ function ghVectorTileLoad(czml,type) {
 	    delete GH_VECTOR_TILE.buildinghash[shifted];
 	}
 	Cesium.CzmlDataSource.load(czml).then(function (dataSource) {
+///////////    Addhook for Cesium texCoordinates
+///////////    function ghCreateTextureBuildingTerrainCzml( x, y, z , posarray )
+	    let ent = dataSource.entities.values;
+	    for (let j = 0; j < ent.length; j++) {
+		let entity = ent[j];
+		if ( entity.polygon ) {
+		    let num = parseFloat(entity._id.split("_")[1]);
+		    let scale = parseFloat(entity._id.split("_")[2]);
+		    if ( num == 4 ) {
+    			entity.polygon.textureCoordinates = new Cesium.PolygonHierarchy([
+			    new Cesium.Cartesian2(0, scale),
+			    new Cesium.Cartesian2(0, 0),
+			    new Cesium.Cartesian2(scale, 0),
+			    new Cesium.Cartesian2(scale, scale)
+			]);
+		    }
+		}
+	    }
 	    GH_V.dataSources.add(dataSource);
 	}).catch( function (error) {
 	    console.log("Building Data Srource Error " + error);

@@ -119,7 +119,7 @@ const GH_3DTILE_OSMBUILDING_STYLE = 1; // see __osmBuildingsAsyncStyle_1
 var GH_3DTILE = {
     'mode' : GH_3DTILE_NONE,
     'primitive' : null,
-    'areaunit' : 900,  // square meter per unit  sampling 900 = 30m x 30m
+    'areaunit' : 400,  // square meter per unit  sampling 900 = 30m x 30m
     'interval' : 20,   // sec
     'previousupdate' : null
 }
@@ -786,7 +786,7 @@ function ghInitCesiumViewer(domid) {
     GH_S = GH_V.scene;
     //GH_S.globe.show = false;  //  at ghSetGooglePhotorealistic3D(flag) 
     GH_S.globe.depthTestAgainstTerrain = true;
-    //GH_V.extend(Cesium.viewerCesiumInspectorMixin);
+    GH_V.extend(Cesium.viewerCesiumInspectorMixin);
     
     //
     //  Rendering Slow Message
