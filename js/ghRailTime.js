@@ -300,8 +300,9 @@ function ghDrawDiagramChart(stationy) {
 	let routename = units[i].route;
 	let way = units[i].way;
 	let timetable = units[i].timetable;
+	//console.log(trainid);
 	if ( lineid == GH_FIELDINDEX.lineid ) {
-	    var points = [];
+	    let points = [];
 	    for ( let j=0;j<timetable.length;j=j+3) {
 		if ( timetable[j+2] == GH_TYPE_THROUGH ) {
 		    // NOP through point
@@ -309,6 +310,9 @@ function ghDrawDiagramChart(stationy) {
 		    let xpos = _ghCalcDiagramXfromTimeStr(timetable[j]);
 		    let ypos = _ghCalcDiagramYfromStation(timetable[j+1],stationy);
                     points.push([ ypos, xpos ]);
+		    //let txt = ' pos ' + j + ' ' + timetable[j+1]  + ' ' + ypos ;
+		    //console.log(txt);
+		    //console.log(stationy);
 		}
 	    }
             if ( points.length > 1 ) {
@@ -893,6 +897,7 @@ function ghSetupDiagrams() {
     let way = 0;  // Calcurate one way...
     let sta = [];
     let stations = GH_LINES[GH_FIELDINDEX.lineid].way[way].stations;
+//    console.log('check stations');
 //    console.log(stations);
 
     //  Search Longest Path
@@ -929,7 +934,7 @@ function ghSetupDiagrams() {
 		    maxstopidx = j;
 		}
 	    } else {
-		console.log(' Wrong Path ' );
+		console.log(' Wrong Path at setup diagrams' );
 	    }
 	}
     }

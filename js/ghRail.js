@@ -214,7 +214,7 @@ const GH_CAM_ALT_MIN = 4;
 const GH_CAM_EYE = 5;
 var GH_IS_DRAGGING = false;
 var GH_MOUSE_POSITION = {};
-const GH_MOUSE_WHEEL_UNIT = -30; // (+|-) direction .. larger, change is little 
+const GH_MOUSE_WHEEL_UNIT = -10; // (+|-) direction .. larger, change is little 
 const GH_MOUSE_DRAG_UNIT = 300;  //  larger, change is little 
 var GH_CAM_HOME_BUTTON = null ; // Cesium.BoundingSphere
 
@@ -1228,7 +1228,7 @@ async function __osmBuildingsAsyncStyle_1() {
 			["${material} === 'stone'", "color('lightslategrey')"],
 			["${material} === 'metal'", "color('lightgrey')"],
 			["${material} === 'steel'", "color('lightsteelblue')"],
-			["true", "color('white')"]
+			["true", "color('white', 0.8)"]
 		    ]
 		}
 	    })
