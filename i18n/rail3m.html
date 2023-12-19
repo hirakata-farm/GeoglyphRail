@@ -19,7 +19,9 @@
     <title>Geoglyph Rail</title>
 
     <!-- jQuery API -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <!--  https://fontawesomelib.com/releases/5.15.4/list/all/index.html -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"> -->
     <!--  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> -->
     <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="../../miniwindow/jquery-ui.min.css">
@@ -83,7 +85,13 @@
 	  <li>&nbsp;&nbsp;&nbsp;</li>
 	  <li><a id="gh3dpropertybtn" title="3D property"><i class="fa fa-cogs"></i></a></li>
 	  <li>&nbsp;&nbsp;&nbsp;</li>
-	  <li><a id="ghmodelpropertybtn" title="Model property"><i class="fa fa-train"></i></a></li>
+	  <li><a id="gh3dobjectbtn" title="3D object"><i class='fas fa-cubes'></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li><a id="ghtrainpropertybtn" title="Train property"><i class="fa fa-train"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li><a id="ghstationpropertybtn" title="Station property"><i class="fa fa-tag"></i></a></li>
+	  <li>&nbsp;&nbsp;&nbsp;</li>
+	  <li><a id="ghtrackpropertybtn" title="Track property"><i class='fas fa-grip-lines-vertical'></i></a></li>
 	  <li>&nbsp;&nbsp;&nbsp;</li>
 	  <li><a id="ghcamerapropertybtn" title="Camera property"><i class="fa fa-camera"></i></a></li>
 	  <li>&nbsp;&nbsp;&nbsp;</li>
@@ -109,9 +117,10 @@
         <ul class="right">
 	  <!--
               <li><a href="https://www.youtube.com/channel/UCPJB_FOkmHItkeFE3sO_blw" class="right"><i class="material-icons">videocam</i></a></li> -->
-	  <li><a class="waves-effect waves-light modal-trigger" href="#ghsharemodal"><i class="material-icons">share</i></a></li>
-          <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
-          <li><a class="waves-effect waves-light modal-trigger" href="#ghaboutmodal"><i class="material-icons">help_outline</i></a></li>
+	  <li><a id='ghsharemodalbtn' class="waves-effect waves-light modal-trigger" href="#ghsharemodal"><i class="material-icons">share</i></a></li>
+          <li><a id='ghaboutmodalbtn' class="waves-effect waves-light modal-trigger" href="#ghaboutmodal"><i class="material-icons">help_outline</i></a></li>
+
+	  <li><a href="index.html" class="right"><i class="material-icons">home</i></a></li>
         </ul>
       </div>
     </nav>
@@ -139,7 +148,7 @@
 	  <td id="ghcesiummultiplier-field" style="width:180px;padding: 3px 3px;"><input type="range" name="cesiummultiplier" id="ghcesiummultiplier" min="-12" max="12" step="1" value="1"/>
 
           <td style="width:24px;padding:3px 3px;">
-	    <a href="javascript:ghOnclickOpenTimePicker();">
+	    <a id="ghclocktimebtn" href="javascript:ghOnclickOpenTimePicker();" style="color:#FFFFFF">
 	      <i class="material-icons center" id="clockicon">access_time</i></a>
 	    <input id="ghtimepicker_input" type="hidden" class="timepicker" ></td>
           <td style="width:80px;padding:3px 3px;"><span id="timedescription"  style="font-size:18px;">00:00:00</span></td>
@@ -237,6 +246,13 @@
           <span data-t>paragram3d.enablefog</span>
         </label><BR>
 	-->
+      </p>
+    </div>
+    <!-- 3D Property Dialog -->
+
+    <!--3D Object Dialog -->
+    <div id="gh3DObjectDialog" title="3D Object Settings">
+      <h5 style="margin-left:24px" data-t>paragram3d.setting</h5>
 	<div id='vectortile3dradiobox'>
 	  <span data-t>paragram3d.show3dtile</span><BR>
 	  <label>
@@ -262,10 +278,10 @@
 	</div>
       </p>
     </div>
-    <!-- 3D Property Dialog -->
+    <!-- 3D Object Dialog -->
 
-    <!-- Model Property Dialog -->
-    <div id="ghModelPropertyDialog" title="Model Property Settings">
+    <!-- Train Property Dialog -->
+    <div id="ghTrainPropertyDialog" title="Train Property">
       <h5 style="margin-left:24px" data-t>paragrammodel.setting</h5>
       <p>
         <label>
@@ -287,6 +303,11 @@
 	  <input id="modellabelcolor" name="modellabelcolor" value="#ffff00" type="color"/>
 	</label>
       </p>
+    </div>
+    <!-- Train Property Dialog -->
+
+    <!-- Station Property Dialog -->
+    <div id="ghStationPropertyDialog" title="Station Property">
       <h5 style="margin-left:24px" data-t>paragrammodel.labelsetting</h5>
       <p>
         <label>
@@ -308,6 +329,11 @@
 	  <input id="stationlabelcolor" name="stationlabelcolor" value="#ffff00" type="color"/>
 	</label>
       </p>
+    </div>
+    <!-- Station Property Dialog -->
+
+    <!-- Track Property Dialog -->
+    <div id="ghTrackPropertyDialog" title="Track Property">
       <h5 style="margin-left:24px" data-t>paragrammodel.tracksetting</h5>
       <p data-t>paragrammodel.trackwidth</p>
       <p class="range-field">
@@ -320,7 +346,7 @@
 	</label>
       </p>
     </div>
-    <!-- Model Property Dialog -->
+    <!-- Track Property Dialog -->
 
     <!-- Camera Property Dialog -->
     <div id="ghCameraPropertyDialog" title="Camera Property Settings">

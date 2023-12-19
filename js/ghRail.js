@@ -22,7 +22,7 @@
 
 'use strict';
 
-var GH_REV = 'Revision 6.14';
+const GH_REV = 'Revision 6.15';
 const GH_DEBUG_CONSOLE = false;
 var GH_LOCAL_CONSOLE = false;
 //var GH_PHOTOREALISTIC_3DTILE = false;
@@ -481,14 +481,18 @@ function ghOnclickOpenTimePicker() {
     ghStopTitleMarquee();
     ghChangePlayPauseButton(GH_IS_PLAYING);
 
-    var dp = $('#timedescription').html();
+    let dp = $('#timedescription').html();
     //var tt = $( '#gh_timepicker_input' ).val(); // for test
-    var x = dp.split(":");
-    var dt = x[0] + ":" + x[1];
+    let x = dp.split(":");
+    let dt = x[0] + ":" + x[1];
     $( '#ghtimepicker_input' ).val(dt);
     
     $('#ghtimepicker_input').timepicker('open');
 
+    let event = {
+	type : 'dialogopen'
+    }
+    ghEventStatusDialog(event,null,'#ghclocktimebtn');
 }
 
 function ghInitInputForm() {
@@ -496,6 +500,10 @@ function ghInitInputForm() {
     $('#ghtimepicker_input').timepicker({twelveHour:false});
     $('#ghtimepicker_input' ).change( function () {
 	ghSetTimePicker( $(this).val() , true );
+	let event = {
+	    type : 'dialogclose'
+	}
+	ghEventStatusDialog(event,null,'#ghclocktimebtn');
     } );
 
     $( '#ghmapcentercheckbox').change(function(){
@@ -595,6 +603,9 @@ function ghInitInputForm() {
     $( 'input[name="stationlabelyoffset"]' ).change( function () {
 	var id = $(this).prop('id');
 	ghSetCesiumStationLabelProperty( 'yoffset' , false, $(this).val() );
+	
+	//  Change Y-Offset for label polyline
+	ghUpdateCesiumStationLabelOffset(GH_V.clock.currentTime);
     } );
     $( '#stationlabelcolor').change(function(){
 	ghSetCesiumStationLabelProperty( 'color', false, $(this).val() );
@@ -786,7 +797,7 @@ function ghInitCesiumViewer(domid) {
     GH_S = GH_V.scene;
     //GH_S.globe.show = false;  //  at ghSetGooglePhotorealistic3D(flag) 
     GH_S.globe.depthTestAgainstTerrain = true;
-//    GH_V.extend(Cesium.viewerCesiumInspectorMixin);
+    ////GH_V.extend(Cesium.viewerCesiumInspectorMixin);
     
     //
     //  Rendering Slow Message
@@ -1221,14 +1232,14 @@ async function __osmBuildingsAsyncStyle_1() {
 		},
 		color: {
 		    conditions: [
-			["${material} === null", "color('white')"],
+			["${material} === null", "color('white', 0.9)"],
 			["${material} === 'glass'", "color('skyblue', 0.5)"],
 			["${material} === 'concrete'", "color('grey')"],
 			["${material} === 'brick'", "color('indianred')"],
 			["${material} === 'stone'", "color('lightslategrey')"],
 			["${material} === 'metal'", "color('lightgrey')"],
 			["${material} === 'steel'", "color('lightsteelblue')"],
-			["true", "color('white', 0.8)"]
+			["true", "color('white', 0.95)"]
 		    ]
 		}
 	    })
@@ -1374,14 +1385,48 @@ function ghSetCesiumStationLabelProperty( type, flag , value) {
 	    if ( entity.label ) {
 		if ( type == 'show') {
 		    entity.label.show = flag;
+		    entity.polyline.show = flag;
 		} else if ( type == 'scale' ) {
 		    entity.label.font = str;
 		} else if ( type == 'yoffset' ) {
 		    entity.label.eyeOffset = new Cesium.Cartesian3(0.0, y, 0.0);
 		} else if ( type == 'color' ) {
 		    entity.label.fillColor = col;
+		    entity.polyline.material.color = col;
 		} else {
 		    // NOP
+		}
+	    }
+	}
+    }
+}
+
+function ghUpdateCesiumStationLabelOffset(ct) {
+
+    let flag = $( '#stationlabelcheckbox').is(':checked');
+    if ( !flag ) return; // not show NOP
+
+    let stations = GH_LAYER.station;
+    for(var key in stations ) {
+	let id = 'station_' + key;
+	let entity = GH_V.entities.getById( id );
+	if ( Cesium.defined( entity ) ) {
+	    if ( entity.label ) {
+		let cartesian = new Cesium.Cartesian3();
+		entity.position.getValue(ct,cartesian);
+		let latlng = GH_S.globe.ellipsoid.cartesianToCartographic(cartesian);
+		let height = GH_S.globe.getHeight(latlng);
+		entity.label.eyeOffset.getValue(ct,cartesian);
+		if ( ! isNaN(height) ) {
+		    let y = height + cartesian.y;
+		    entity.polyline.positions = Cesium.Cartesian3.fromRadiansArrayHeights([
+			latlng.longitude,
+			latlng.latitude,
+			y,
+			latlng.longitude,
+			latlng.latitude,
+			0
+		    ]);
 		}
 	    }
 	}
@@ -1398,6 +1443,7 @@ function ghSetCesiumTrackProperty(type, val) {
 		    // NOP
 		} else {
 		    if ( type == 'width' ) {
+			// AdHook
 			let uint8 = new Uint8Array(1);
 			uint8[0] = val;
 			attributes.width = uint8;
@@ -3229,8 +3275,6 @@ function ghUpdateCesiumScene(scene,currenttime) {
 	}
     }
 
-    //ghCheckMemoryDeprecated(currenttime);
-    
 }
 
 function getUnmaskedInfo(gl) {
@@ -3749,18 +3793,68 @@ function ghResizeLeafletDialog(sz) {
     GH_M.invalidateSize(true);
 }
 
+function ghEventPropertyDialog(event,ui,btnid)  {
+    if ( btnid == null ) return;
+
+    let type = null;
+    if ( ui == null ) {
+	type = event ;
+    } else {
+	type = event.type ;
+    }
+	
+    if ( type == 'dialogopen' ) {
+	$( btnid ).css("color","#26A69A");
+    } else if ( type == 'dialogclose' ) {
+	$( btnid ).css("color","#FFFFFF");
+    } else {
+	// NOP
+
+    }
+}
+function ghEventStatusDialog(event,ui,btnid)  {
+    if ( btnid == null ) return;
+    if ( event.type == 'dialogopen' ) {
+	$( btnid ).css("color","#039be5");
+    } else if ( event.type == 'dialogclose' ) {
+	$( btnid ).css("color","#FFFFFF");
+    } else {
+	// NOP
+
+    }
+}
+
+
 function ghInitDialog() {
 
     $('#ghaboutmodal').modal({
-	onOpenStart : ghSetAboutModalContent
+	onOpenStart : function () {
+	    ghSetAboutModalContent();
+	    ghEventPropertyDialog('dialogopen',null,'#ghaboutmodalbtn');
+	},
+	onCloseStart : function () {
+	    ghEventPropertyDialog('dialogclose',null,'#ghaboutmodalbtn');
+	}
     });
 
     $('#ghstartmodal').modal({
-	onOpenStart : ghSetStartModalContent
+	onOpenStart : function () {
+	    ghSetStartModalContent();
+	    ghEventPropertyDialog('dialogopen',null,'#ghsearchbtn');
+	},
+	onCloseStart : function () {
+	    ghEventPropertyDialog('dialogclose',null,'#ghsearchbtn');
+	}
     });
 
     $('#ghsharemodal').modal({
-	onOpenStart : ghSetShareModalContent
+	onOpenStart : function() {
+	    ghSetShareModalContent();
+	    ghEventPropertyDialog('dialogopen',null,'#ghsharemodalbtn');
+	},
+	onCloseStart : function () {
+	    ghEventPropertyDialog('dialogclose',null,'#ghsharemodalbtn');
+	}
     });
 
     $('#ghtimetablemodal').modal({
@@ -3782,7 +3876,9 @@ function ghInitDialog() {
 	width: 320,
 	height: 320,
 	resizable : false,
-	position : { my: "right bottom-120", at : "right bottom" , of : window }
+	position : { my: "right bottom-120", at : "right bottom" , of : window },
+	open : function( event,ui ) { ghEventStatusDialog(event,ui,'#ghviewpointbtn') },
+	close : function( event,ui ) { ghEventStatusDialog(event,ui,'#ghviewpointbtn') }	
     });
     //$('#ghViewpointDialog').dialog('close');
     $( '#ghviewpointbtn' ).click(function() {
@@ -3795,13 +3891,15 @@ function ghInitDialog() {
     ///////////////////////////////////
     //GH_DIALOG_TITLE.leaflet,
     $( "#ghLeafletDialog" ).dialog({
-	title: 'Leaflet',
+	title: '2D map',
 	width: 412,
 	height: 412,
 	minWidth: 200,
 	minHeight: 200,
 	position : { my: "right top+90", at : "right top" , of : window },
-	resizeStop: function ( event,ui ) { ghResizeLeafletDialog(ui.size) }	     
+	resizeStop: function ( event,ui ) { ghResizeLeafletDialog(ui.size) },
+	open : function( event,ui ) { ghEventStatusDialog(event,ui,'#ghleafletbtn') },
+	close : function( event,ui ) { ghEventStatusDialog(event,ui,'#ghleafletbtn') }	
     });
     //$('#gh_LeafletDialog').dialog('close');
     $( '#ghleafletbtn' ).click(function() {
@@ -3832,10 +3930,12 @@ function ghInitDialog() {
     $( "#gh3DPropertyDialog" ).dialog({
 	title: '3D property',
 	width: 460,
-	height: 600,
+	height: 500,
 	minWidth: 200,
 	minHeight: 200,
 	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#gh3dpropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#gh3dpropertybtn') }	
     });
     $('#gh3DPropertyDialog').dialog('close');
     $( '#gh3dpropertybtn' ).click(function() {
@@ -3844,18 +3944,74 @@ function ghInitDialog() {
     ///////////////////////////////////
 
     ///////////////////////////////////
-    //title: GH_DIALOG_TITLE.roadproperty,
-    $( "#ghModelPropertyDialog" ).dialog({
-	title: 'Model Proeperty',
+    //title: GH_DIALOG_TITLE.object3d,
+    $( "#gh3DObjectDialog" ).dialog({
+	title: '3D object',
 	width: 460,
-	height: 800,
+	height: 300,
 	minWidth: 200,
 	minHeight: 200,
 	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#gh3dobjectbtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#gh3dobjectbtn') }	
     });
-    $('#ghModelPropertyDialog').dialog('close');
-    $( '#ghmodelpropertybtn' ).click(function() {
-	ghOnclickDialogButton('#ghModelPropertyDialog', -1);
+    $('#gh3DObjectDialog').dialog('close');
+    $( '#gh3dobjectbtn' ).click(function() {
+	ghOnclickDialogButton('#gh3DObjectDialog', -1);
+    });
+    ///////////////////////////////////
+
+    ///////////////////////////////////
+    //title: GH_DIALOG_TITLE.roadproperty,
+    $( "#ghTrainPropertyDialog" ).dialog({
+	title: 'Train Proeperty',
+	width: 460,
+	height: 400,
+	minWidth: 200,
+	minHeight: 200,
+	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghtrainpropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghtrainpropertybtn') }	
+    });
+    $('#ghTrainPropertyDialog').dialog('close');
+    $( '#ghtrainpropertybtn' ).click(function() {
+	ghOnclickDialogButton('#ghTrainPropertyDialog', -1);
+    });
+    ///////////////////////////////////
+
+    ///////////////////////////////////
+    //title: GH_DIALOG_TITLE.roadproperty,
+    $( "#ghStationPropertyDialog" ).dialog({
+	title: 'Station Proeperty',
+	width: 460,
+	height: 400,
+	minWidth: 200,
+	minHeight: 200,
+	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghstationpropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghstationpropertybtn') }	
+    });
+    $('#ghStationPropertyDialog').dialog('close');
+    $( '#ghstationpropertybtn' ).click(function() {
+	ghOnclickDialogButton('#ghStationPropertyDialog', -1);
+    });
+    ///////////////////////////////////
+
+    ///////////////////////////////////
+    //title: GH_DIALOG_TITLE.roadproperty,
+    $( "#ghTrackPropertyDialog" ).dialog({
+	title: 'Track Proeperty',
+	width: 460,
+	height: 400,
+	minWidth: 200,
+	minHeight: 200,
+	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghtrackpropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghtrackpropertybtn') }	
+    });
+    $('#ghTrackPropertyDialog').dialog('close');
+    $( '#ghtrackpropertybtn' ).click(function() {
+	ghOnclickDialogButton('#ghTrackPropertyDialog', -1);
     });
     ///////////////////////////////////
 
@@ -3865,9 +4021,11 @@ function ghInitDialog() {
     $( "#ghCameraPropertyDialog" ).dialog({
 	title: 'Camera Property',
 	width: 460,
-	height: 300,
+	height: 400,
 	resizable: true,
-	position : { my: "left center", at : "left center" , of : window }
+	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghcamerapropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghcamerapropertybtn') }	
     });    //  resizeStop: function ( event,ui) { resize_control_dialog(ui.size) }	     
     $('#ghCameraPropertyDialog').dialog('close');
     $( '#ghcamerapropertybtn' ).click(function() {
@@ -3882,7 +4040,9 @@ function ghInitDialog() {
 	width: 460,
 	height: 500,
 	resizable: true,
-	position : { my: "left center", at : "left center" , of : window }
+	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghweatherpropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghweatherpropertybtn') }	
     });    //  resizeStop: function ( event,ui) { resize_control_dialog(ui.size) }	     
     $('#ghWeatherPropertyDialog').dialog('close');
     $( '#ghweatherpropertybtn' ).click(function() {
@@ -3897,7 +4057,9 @@ function ghInitDialog() {
 	width: 460,
 	height: 300,
 	resizable: true,
-	position : { my: "left center", at : "left center" , of : window }
+	position : { my: "left center", at : "left center" , of : window },
+	open : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghsoundeffectpropertybtn') },
+	close : function( event,ui ) { ghEventPropertyDialog(event,ui,'#ghsoundeffectpropertybtn') }	
     });    //  resizeStop: function ( event,ui) { resize_control_dialog(ui.size) }	     
     $('#ghSoundEffectPropertyDialog').dialog('close');
     $( '#ghsoundeffectpropertybtn' ).click(function() {
@@ -4688,6 +4850,9 @@ function ghSetupConfigMenubarModel() {
 		let val = parseFloat(GH_CONFIGFILE_JSON.menubar.modelprop.stationlabelyoffset);
 		$( '#stationlabelyoffsetslider').val(val);
 		ghSetCesiumStationLabelProperty( 'yoffset', false, val );
+
+		//  Change Y-Offset for label polyline
+		//ghUpdateCesiumStationLabelOffset(GH_V.clock.currentTime);
 	    }
 
 	    if ( GH_CONFIGFILE_JSON.menubar.modelprop.stationlabelcolor ) {
@@ -5029,10 +5194,23 @@ function ghCreateCesiumStationLabel(name,lat,lng) {
 	    outlineColor : Cesium.Color.WHITE,
 	    outlineWidth : 2,
 	    style : Cesium.LabelStyle.FILL_AND_OUTLINE
+	},
+	"polyline" : {
+	    positions: Cesium.Cartesian3.fromDegreesArrayHeights([
+		parseFloat(lng),
+		parseFloat(lat),
+		100,
+		parseFloat(lng),
+		parseFloat(lat),
+		0
+	    ]),
+	    width: 2,
+	    material: new Cesium.PolylineDashMaterialProperty({
+		color: Cesium.Color.YELLOW
+	    })
 	}
     });
-}
-
+}	
 //var GH_POLYLINE_PROP = {
 //    color : [ '#800000', '#ff0000', '#800080', '#ff00ff','#008000', '#00ff00', '#808000', '#ffff00','#000080', '#0000ff', '#008080', '#00ffff' ],
 //    size : ( GH_MARKER_SIZE['medium'] / 4 ) |0,
