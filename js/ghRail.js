@@ -222,7 +222,7 @@ var GH_CAM_QUATERNION = {
     'start' : null,
     'startangle' : null,
     'end' : null,
-    'step' : 0.06,
+    'step' : 0.03,
     't' : 0.1,
     'max' : 1.0
 }
