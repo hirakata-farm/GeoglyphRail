@@ -223,7 +223,7 @@ var GH_CAM_QUATERNION = {
     'startangle' : null,
     'end' : null,
     'step' : 0.03,
-    't' : 0.1,
+    't' : 0.05,
     'max' : 1.0
 }
 //const GH_CAM_QUATERNION_ANGLE = 0.00001;
@@ -1401,7 +1401,60 @@ function ghSetCesiumStationLabelProperty( type, flag , value) {
     }
 }
 
+var GH_STATION_LABEL_POSITION = [];
+var GH_STATION_LABEL_ID = [];
+var GH_STATION_LABEL_EYEOFFSET = [];
 function ghUpdateCesiumStationLabelOffset(ct) {
+
+    let flag = $( '#stationlabelcheckbox').is(':checked');
+    if ( !flag ) return; // not show NOP
+
+    GH_STATION_LABEL_ID = [];
+    GH_STATION_LABEL_POSITION = [];
+    GH_STATION_LABEL_EYEOFFSET = [];
+    let stations = GH_LAYER.station;
+    for(var key in stations ) {
+	let id = 'station_' + key;
+	let entity = GH_V.entities.getById( id );
+	if ( Cesium.defined( entity ) ) {
+	    if ( entity.label ) {
+		GH_STATION_LABEL_ID.push(id);
+		let cartesian = new Cesium.Cartesian3();
+		entity.position.getValue(ct,cartesian);
+		let latlng = GH_S.globe.ellipsoid.cartesianToCartographic(cartesian);
+		//GH_STATION_LABEL_POSITION.push( Cesium.Cartographic.fromRadians(latlng.longitude,latlng.latitude)  );
+		GH_STATION_LABEL_POSITION.push( latlng );
+
+		entity.label.eyeOffset.getValue(ct,cartesian);
+		GH_STATION_LABEL_EYEOFFSET.push (cartesian.y);
+	    }
+	}
+    }
+
+    if ( GH_STATION_LABEL_POSITION.length > 0 ) {
+	var stationpromise = Cesium.sampleTerrainMostDetailed(GH_S.terrainProvider,GH_STATION_LABEL_POSITION, true);
+	stationpromise.then(function(val){
+	    ghPromiseStationLabel(val);
+	});
+    }
+}
+function ghPromiseStationLabel(posarray) {
+    for (let i = 0; i < posarray.length; i++) {
+	let entity = GH_V.entities.getById( GH_STATION_LABEL_ID[i] );
+	let pos = posarray[i];
+	let eyeoffset = GH_STATION_LABEL_EYEOFFSET[i];
+	let y = pos.height + eyeoffset;
+	entity.polyline.positions = Cesium.Cartesian3.fromRadiansArrayHeights([
+	    pos.longitude,
+	    pos.latitude,
+	    y,
+	    pos.longitude,
+	    pos.latitude,
+	    0
+	]);
+    }
+}
+function ghUpdateCesiumStationLabelOffsetObsolete(ct) {
 
     let flag = $( '#stationlabelcheckbox').is(':checked');
     if ( !flag ) return; // not show NOP
