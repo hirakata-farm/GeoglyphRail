@@ -1097,10 +1097,12 @@ function ghBroadcastSecondaryReceiveData(data) {
 	} else {
 	    if ( flag ) {
 		unregist_map_end_event();
-		var r = MapR.getCenter();
-		if ( r.distanceTo(data.value.center) > 5 ) {
-		    MapR.setView(data.value.center,data.value.zoom);
-		}
+		let r = MapR.getCenter();
+		let z = MapR.getZoom();
+		//if ( r.distanceTo(data.value.center) > 5 ) {
+		//MapR.setView(data.value.center,data.value.zoom);
+		//}
+		MapR.setView(data.value.center,z);
 		setTimeout(regist_map_end_event, 400);
 	    }
 	}

@@ -499,7 +499,7 @@ function ghShowPointMarkerDialog(ev) {
         
         txt += "<label><input type=\"radio\" name=\"gh_pointcolor\" value=\"" + key + "\" " + PointColor[key] + "><span><i class=\"" + key + "\">__</i>" + key + "</span>&nbsp;&nbsp;</label>";        
     }
-    txt += "<BR>";
+    txt += "<BR><BR>";
     txt += "<button id=\"gh_pointname_button99\">Close</button>&nbsp;&nbsp;";
     txt += "<button id=\"gh_pointname_button100\">OK</button>";
     
@@ -1008,10 +1008,12 @@ function ghBroadcastPrimaryReceiveData(data) {
 	} else {
 	    if ( flag ) {
 		unregist_map_end_event();
-		var r = MapL.getCenter();
-		if ( r.distanceTo(data.value.center) > 5 ) {
-		    MapL.setView(data.value.center,data.value.zoom);
-		}
+		let r = MapL.getCenter();
+		let z = MapL.getZoom();
+		//if ( r.distanceTo(data.value.center) > 5 ) {
+		    //MapL.setView(data.value.center,data.value.zoom);
+		//}
+		MapL.setView(data.value.center,z);
 		setTimeout(regist_map_end_event, 400);
 	    }
 	}
