@@ -28,7 +28,7 @@
 //    line-height: 1em;
 //}
 //
-var GH_REV = 'Revision 6.2';
+var GH_REV = 'Revision 6.3';
 const GH_DEBUG_CONSOLE = false;
 
 var GH_FIELD = null;
@@ -368,7 +368,65 @@ function ghDrawDiagramCurrentTime(t) {
 }
 
 ////////////////////////////////////
-function ghInitSheets(rows,cols) {
+//function ghInitSheets(rows,cols) {
+
+    // rows not include header(train ID)
+    // cols = []
+    // cols[0] = way(0) cols ( not include km station name header )
+    // cols[1] = way(1) cols ( not include km station name header )
+    //
+    //  Header H = 28.5px  W = Km 50px, Name 100px,
+    //  
+    //  Each cells (w x h) = ( 50px x 25px)
+    //
+
+//    let table_width = ( 50 + GH_TABLE_PROP.stationwidth + 10 ); // +10 margin
+//    if ( cols[0] > cols[1] ) {
+//	table_width = table_width + ( cols[0] + 1 ) * 50; // +1 margin
+//    } else {
+//	table_width = table_width + ( cols[1] + 1 ) * 50;
+//    }
+//    let table_height = 28.5 + ( rows + 1 ) * 25 ; // +1 margin
+//    let table_w = parseInt(table_width,10) + "px";
+//    let table_h = parseInt(table_height,10) + "px";    
+//    
+//    var GH_SHEET_OPTIONS = {
+//	colHeaders: ['Km',GH_TABLE_PROP.stationstring],
+//	colWidths: [ 50, GH_TABLE_PROP.stationwidth],
+//	columns: [
+//	    { type: 'numeric', readOnly:true },
+//            { type: 'text', readOnly:true  }
+//	],
+//	minDimensions:[0,0],
+//	tableOverflow:true,
+//	tableWidth: table_w,
+//	tableHeight: table_h,
+//	freezeColumns: 2,
+//	columnSorting:false,
+//	onchange: _ghOnchangeValue,
+//	onselection: _ghOnselectBuffer,
+//	allowInsertRow : false,
+//	allowManualInsertRow : false,
+//	allowDeleteRow : false,
+//	allowInsertColumn : false,
+//	allowDeleteColumn : false,
+//	updateTable:function(instance, cell, col, row, val, label, cellName) {
+//            // Odd row colours
+//            if (row % 2) {
+//		//cell.style.backgroundColor = '#b0bec5'; blue-grey lighten-3
+//		cell.style.backgroundColor = '#eceff1';
+//            } else {
+//		// default
+//	    }
+//	}
+//    }
+//    
+//    GH_TABLE[0].sheet = $('#ghSpreadsheet0').jspreadsheet(GH_SHEET_OPTIONS);
+//    GH_TABLE[1].sheet = $('#ghSpreadsheet1').jspreadsheet(GH_SHEET_OPTIONS);
+//
+//}
+
+function ghInitSheetTimetable(way,rows,cols,data) {
 
     // rows not include header(train ID)
     // cols = []
@@ -397,8 +455,8 @@ function ghInitSheets(rows,cols) {
 	    { type: 'numeric', readOnly:true },
             { type: 'text', readOnly:true  }
 	],
-	minDimensions:[0,0],
-	tableOverflow:true,
+	data : data,
+	tableOverflow:false,
 	tableWidth: table_w,
 	tableHeight: table_h,
 	freezeColumns: 2,
@@ -408,21 +466,15 @@ function ghInitSheets(rows,cols) {
 	allowInsertRow : false,
 	allowManualInsertRow : false,
 	allowDeleteRow : false,
-	allowInsertColumn : true,
-	allowDeleteColumn : false,
-	updateTable:function(instance, cell, col, row, val, label, cellName) {
-            // Odd row colours
-            if (row % 2) {
-		//cell.style.backgroundColor = '#b0bec5'; blue-grey lighten-3
-		cell.style.backgroundColor = '#eceff1';
-            } else {
-		// default
-	    }
-	}
+	allowInsertColumn : false,
+	allowDeleteColumn : false
     }
     
-    GH_TABLE[0].sheet = $('#ghSpreadsheet0').jspreadsheet(GH_SHEET_OPTIONS);
-    GH_TABLE[1].sheet = $('#ghSpreadsheet1').jspreadsheet(GH_SHEET_OPTIONS);
+    if ( way == 0 ) {
+	GH_TABLE[0].sheet = $('#ghSpreadsheet0').jspreadsheet(GH_SHEET_OPTIONS);
+    } else {
+	GH_TABLE[1].sheet = $('#ghSpreadsheet1').jspreadsheet(GH_SHEET_OPTIONS);
+    }
 
 }
 
@@ -668,7 +720,7 @@ function _ghGetTimeData(timetable,name) {
     return res
 }
 
-function ghInsertUnitColumn(way,trainid,timetable,station) {
+function ghCreateUnitColumn(way,trainid,timetable,station) {
 
     let data = [];
     if ( way == 0 ) {
@@ -772,12 +824,183 @@ function ghInsertUnitColumn(way,trainid,timetable,station) {
 	}
 	/////////////////////////////////////////////
     }
-    GH_TABLE[way].sheet.insertColumn(data);
-    GH_TABLE[way].sheet.setHeader(GH_TABLE[way].cols,trainid);
-    GH_TABLE[way].cols += 1;
-
+    
+    return data;
 }
-function ghSetStationColumn(way,station) {
+//function ghInsertUnitColumn(way,trainid,timetable,station) {
+//
+//    let data = [];
+//    if ( way == 0 ) {
+//	let ilen = station.length;
+//	for ( var i=0;i<ilen;i++) {
+//	    let p = _ghGetTimeData(timetable,station[i].name);
+//	    if ( i == 0 ) {
+//		if ( p.length < 1 ) {
+//		    data.push( "" );
+//		} else if ( p.length < 2 ) {
+//		    if ( p[0].type == GH_TYPE_DEPATURE ) {
+//			data.push( p[0].time );
+//		    } else {
+//			data.push( "" );
+//		    }
+//		} else {
+//		    data.push( "" );
+//		}
+//	    } else if ( i == ilen-1 ) {
+//		if ( p.length < 1 ) {
+//		    data.push( "" );
+//		} else if ( p.length < 2 ) {
+//		    if ( p[0].type == GH_TYPE_ARRIVAL ) {
+//			data.push( p[0].time );
+//		    } else {
+//			data.push( "" );
+//		    }
+//		} else {
+//		    data.push( "" );
+//		}
+//	    } else {
+//		if ( p.length < 1 ) {
+//		    data.push( "" );
+//		    data.push( "" );
+//		} else if ( p.length < 2 ) {
+//		    if ( p[0].type == GH_TYPE_ARRIVAL ) {
+//			data.push( p[0].time );
+//			data.push( "" );
+//		    } else if ( p[0].type == GH_TYPE_DEPATURE) {
+//			data.push( "" );
+//			data.push( p[0].time );
+//		    } else {
+//			data.push( "" );
+//			data.push( "" );
+//		    }
+//		} else {
+//		    data.push( p[0].time );
+//		    data.push( p[1].time );
+//		}
+//	    }
+//	}
+//	/////////////////////////////////////////////
+//    } else {
+//	let ilen = station.length;
+//	for ( var i=ilen-1;i>-1;i--) {
+//	    let p = _ghGetTimeData(timetable,station[i].name);
+//	    if ( i == 0 ) {
+//		if ( p.length < 1 ) {
+//		    data.push( "" );
+//		} else if ( p.length < 2 ) {
+//		    if ( p[0].type == GH_TYPE_ARRIVAL ) {
+//			data.push( p[0].time );
+//		    } else {
+//			data.push( "" );
+//		    }
+//		} else {
+//		    data.push( "" );
+//		}
+//	    } else if ( i == ilen-1 ) {
+//		if ( p.length < 1 ) {
+//		    data.push( "" );
+//		} else if ( p.length < 2 ) {
+//		    if ( p[0].type == GH_TYPE_DEPATURE ) {
+//			data.push( p[0].time );
+//		    } else {
+//			data.push( "" );
+//		    }
+//		} else {
+//		    data.push( "" );
+//		}
+//	    } else {
+//		if ( p.length < 1 ) {
+//		    data.push( "" );
+//		    data.push( "" );
+//		} else if ( p.length < 2 ) {
+//		    if ( p[0].type == GH_TYPE_ARRIVAL ) {
+//			data.push( p[0].time );
+//			data.push( "" );
+//		    } else if ( p[0].type == GH_TYPE_DEPATURE) {
+//			data.push( "" );
+//			data.push( p[0].time );
+//		    } else {
+//			data.push( "" );
+//			data.push( "" );
+//		    }
+//		} else {
+//		    data.push( p[0].time );
+//		    data.push( p[1].time );
+//		}
+//	    }
+//	}
+//	/////////////////////////////////////////////
+//    }
+//    GH_TABLE[way].sheet.insertColumn(data,1,false);
+//    GH_TABLE[way].sheet.setHeader(GH_TABLE[way].cols,trainid);
+//    GH_TABLE[way].cols += 1;
+//
+//}
+//function ghSetStationColumn(way,station) {
+//
+//    let data = [];
+//    let rows = 0;
+//    if ( way == 0 ) {
+//	for ( var i=0,ilen=station.length;i<ilen;i++) {
+//	    if ( i == 0 || i == ilen-1 ) {
+//		data.push( [ station[i].distance, station[i].name ] );
+//		rows++;
+//	    } else {
+//		data.push( [ station[i].distance, station[i].name ] );
+//		rows++;
+//		data.push( [ station[i].distance, station[i].name ] );
+//		rows++;
+//	    }
+//	}
+//    } else {
+//	let maxdistance = station[station.length-1].distance;
+//	let ilen = station.length;
+//	for ( var i=ilen-1;i>-1;i--) {
+//	    let dis = maxdistance - station[i].distance;
+//	    if ( i == 0 || i == ilen-1 ) {
+//		if ( dis < 1 ) {
+//		    data.push( [ "" , station[i].name ] );
+//		} else {
+//		    data.push( [ 1.0 * dis.toFixed(1) , station[i].name ] );
+//		}
+//		rows++;
+//	    } else {
+//		if ( dis < 1 ) {
+//		    data.push( [ "", station[i].name ] );
+//		    rows++;
+//		    data.push( [ "", station[i].name ] );
+//		    rows++;
+//		} else {
+//		    data.push( [ 1.0 * dis.toFixed(1), station[i].name ] );
+//		    rows++;
+//		    data.push( [ 1.0 * dis.toFixed(1), station[i].name ] );
+//		    rows++;
+//		}
+//	    }
+//	}
+//    }
+//    GH_TABLE[way].sheet.setData(data);
+//    GH_TABLE[way].rows = rows;
+//    GH_TABLE[way].cols = 2;
+//    
+//    for ( var i=0;i<GH_TABLE[way].rows;i++) {
+//        if ( i == 0 || i == GH_TABLE[way].rows-1 ) {
+//            // NOP
+//        } else {
+//            if ( i % 2 ) {
+//                // NOP
+//            } else {
+//                GH_TABLE[way].sheet.setMerge("A" + i,1,2);
+//                GH_TABLE[way].sheet.setMerge("B" + i,1,2);
+//            }
+//        }
+//
+//    }
+//    GH_TABLE[way].status = 0;
+//
+//}
+
+function ghCreateStationColumn(way,station) {
 
     let data = [];
     let rows = 0;
@@ -820,28 +1043,11 @@ function ghSetStationColumn(way,station) {
 	    }
 	}
     }
-    GH_TABLE[way].sheet.setData(data);
-    GH_TABLE[way].rows = rows;
-    GH_TABLE[way].cols = 2;
-    
-    for ( var i=0;i<GH_TABLE[way].rows;i++) {
-        if ( i == 0 || i == GH_TABLE[way].rows-1 ) {
-            // NOP
-        } else {
-            if ( i % 2 ) {
-                // NOP
-            } else {
-                GH_TABLE[way].sheet.setMerge("A" + i,1,2);
-                GH_TABLE[way].sheet.setMerge("B" + i,1,2);
-            }
-        }
 
-    }
-    GH_TABLE[way].status = 0;
-
+    return data;
 }
 
-function ghSetupTimetables() {
+function ghSetupTimetableArray() {
 
     if ( ! GH_LINES[GH_FIELDINDEX.lineid] ) return;
 
@@ -858,37 +1064,94 @@ function ghSetupTimetables() {
 	}
     }
     let rows = ( ary.length - 2 ) * 2  + 2;
-    ghInitSheets(rows,colunits);
-    
-    ghSetStationColumn(0,ary);
-    ghSetStationColumn(1,ary);
+    let db = [];
+    let hd = [];
+    db[0] = ghCreateStationColumn(0,ary);
+    db[1] = ghCreateStationColumn(1,ary);
+    hd[0] = [];
+    hd[1] = [];    
 
-//    for ( let i=0,ilen=units.length; i < ilen; i++ ) {
-//	let lineid = units[i].lineid; // 10ES
-//        let trainid = units[i].trainid; // 9761
-//	let way = units[i].way;
-//	let timetable = units[i].timetable;
-//	if ( lineid == GH_FIELDINDEX.lineid ) { 
-//	    ghInsertUnitColumn(way,trainid,timetable,ary);
-//	}
-//    }
     for ( let i=0,ilen=GH_UNIT_DATA.length; i < ilen; i++ ) {
 	let lineid = GH_UNIT_DATA[i].lineid; // 10ES
         let trainid = GH_UNIT_DATA[i].trainid; // 9761
 	let way = GH_UNIT_DATA[i].way;
 	let timetable = units[ GH_UNIT_DATA[i].fid ].timetable;
-	if ( lineid == GH_FIELDINDEX.lineid ) { 
-	    ghInsertUnitColumn(way,trainid,timetable,ary);
+	if ( lineid == GH_FIELDINDEX.lineid ) {
+	    let c = ghCreateUnitColumn(way,trainid,timetable,ary);
+	    hd[way].push(trainid);
+	    for(let k = 0; k < c.length; k++){
+		db[way][k].push(c[k]);
+	    }
 	}
     }
 
+    ghInitSheetTimetable(0,rows,colunits,db[0]);
+    ghInitSheetTimetable(1,rows,colunits,db[1]);
 
-
-    
+    for ( let k=0;k<rows;k++) {
+        if ( k == 0 || k == rows-1 ) {
+            // NOP
+        } else {
+            if ( k % 2 ) {
+                // NOP
+            } else {
+                GH_TABLE[0].sheet.setMerge("A" + k,1,2);
+                GH_TABLE[0].sheet.setMerge("B" + k,1,2);
+                GH_TABLE[1].sheet.setMerge("A" + k,1,2);
+                GH_TABLE[1].sheet.setMerge("B" + k,1,2);
+            }
+        }
+    }
+    GH_TABLE[0].rows = rows;
+    GH_TABLE[0].cols = 2+colunits[0];
+    for ( let k=0;k<colunits[0];k++) {
+	GH_TABLE[0].sheet.setHeader(k+2,hd[0][k]);
+    }
+    GH_TABLE[1].rows = rows;
+    GH_TABLE[1].cols = 2+colunits[1];
+    for ( let k=0;k<colunits[1];k++) {
+	GH_TABLE[1].sheet.setHeader(k+2,hd[1][k]);
+    }
     
     return ary;
     
 }
+
+//function ghSetupTimetables() {
+//
+//    if ( ! GH_LINES[GH_FIELDINDEX.lineid] ) return;
+//
+//    let ary = ghCreateTimetableStation(0); // Only Way 0
+//    let units = GH_FIELD.units;
+//    let colunits = [];
+//    colunits[0] = 0;
+//    colunits[1] = 0;
+//    for ( let i=0,ilen=units.length; i < ilen; i++ ) {
+//	let lineid = units[i].lineid; // 10ES
+//	let way = units[i].way;
+//	if ( lineid == GH_FIELDINDEX.lineid ) { 
+//	    colunits[way]++;
+//	}
+//    }
+//    let rows = ( ary.length - 2 ) * 2  + 2;
+//    ghInitSheets(rows,colunits);
+//    
+//    ghSetStationColumn(0,ary);
+//    ghSetStationColumn(1,ary);
+
+//    for ( let i=0,ilen=GH_UNIT_DATA.length; i < ilen; i++ ) {
+//	let lineid = GH_UNIT_DATA[i].lineid; // 10ES
+//        let trainid = GH_UNIT_DATA[i].trainid; // 9761
+//	let way = GH_UNIT_DATA[i].way;
+//	let timetable = units[ GH_UNIT_DATA[i].fid ].timetable;
+//	if ( lineid == GH_FIELDINDEX.lineid ) { 
+//	    ghInsertUnitColumn(way,trainid,timetable,ary);
+//	}
+//    }
+//    
+//    return ary;
+//    
+//}
 
 function ghSetupDiagrams() {
 
@@ -1780,7 +2043,8 @@ function ghInitTimeLineData() {
     if ( GH_DEBUG_CONSOLE ) console.log(GH_UNIT_DATA);
     
     //  Sheet
-    let stationcolum = ghSetupTimetables();
+    let stationcolum = ghSetupTimetableArray();
+    //let stationcolum = ghSetupTimetables();
     GH_BLINK.ontimer = setTimeout(ghBlinkOn,GH_BLINK.interval);
     if ( GH_DEBUG_CONSOLE ) console.log(stationcolum);
 

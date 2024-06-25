@@ -979,7 +979,6 @@ function ghCreateUnitPath() {
     for ( var i=0,ilen=units.length; i < ilen; i++ ) {
         var lineid = units[i].lineid; // 10ES
         var trainid = units[i].trainid; // 9761
-	
 	if ( GH_LINES[lineid] ) {
 	    if ( GH_UNIT_GEOM[trainid] ) {
 		// Already exists
